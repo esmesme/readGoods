@@ -7,22 +7,17 @@ const BOOKS_COLLECTION = 'books';
 const USER_BOOKS_COLLECTION = 'userBooks';
 
 export async function saveBookToFirestore(book: BookData, userFid: number, status: BookStatus) {
-    console.log("saveBookToFirestore START", { bookKey: book.key, userFid, status });
     try {
         const docId = book.key.replace('/works/', '');
-        console.log("Document ID:", docId);
 
         // Save to global books collection
-        console.log("Saving to global books collection...");
         const bookRef = doc(db, BOOKS_COLLECTION, docId);
         await setDoc(bookRef, {
             ...book,
             updatedAt: new Date(),
         }, { merge: true });
-        console.log("Global book saved");
 
         // Save to user's personal collection
-        console.log("Saving to user's personal collection...");
         const userBookRef = doc(db, USER_BOOKS_COLLECTION, `${userFid}_${docId}`);
         await setDoc(userBookRef, {
             userFid,
@@ -34,14 +29,9 @@ export async function saveBookToFirestore(book: BookData, userFid: number, statu
             loggedAt: new Date(),
             updatedAt: new Date(),
         }, { merge: true });
-        console.log("User book saved");
-
-        console.log(`Book saved: ${book.title} for user ${userFid} as ${status}`);
         return docId;
     } catch (error) {
         console.error('Error saving book to Firestore:', error);
-        console.error('Error type:', typeof error);
-        console.error('Error message:', error instanceof Error ? error.message : String(error));
         throw error;
     }
 }

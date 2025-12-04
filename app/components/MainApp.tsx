@@ -58,14 +58,9 @@ const StatusIcon = ({ status, size = 20, isButton = false, onClick = () => { }, 
 
     if (!IconComponent) return null;
 
-    const handleClick = () => {
-        console.log("StatusIcon clicked:", status, "isButton:", isButton);
-        onClick();
-    };
-
     return (
         <button
-            onClick={handleClick}
+            onClick={onClick}
             disabled={!isButton}
             className={`${classes} ${isButton ? 'hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]' : ''} flex items-center justify-center space-x-2`}
             title={config.label}
@@ -193,10 +188,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                             status={status}
                             size={24}
                             isButton={true}
-                            onClick={() => {
-                                console.log("BookCard status icon clicked:", status);
-                                onStatusChange(status);
-                            }}
+                            onClick={() => onStatusChange(status)}
                             className={userStatus === status ? 'ring-4 ring-gray-400' : ''}
                         />
                     ))}
@@ -395,28 +387,20 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     };
 
     const handleStatusChange = async (newStatus: BookStatus | 'none') => {
-        console.log("handleStatusChange called with:", newStatus);
-
         if (!effectiveUser?.fid) {
-            console.error("No user found");
             showToast("Please sign in", "error");
             return;
         }
 
-        if (!selectedBook) {
-            console.error("No selected book");
-            return;
-        }
+        if (!selectedBook) return;
 
         const bookKey = ('bookKey' in selectedBook ? selectedBook.bookKey : selectedBook.key) as string;
-        console.log("Processing book:", bookKey);
 
         setIsSaving(true);
 
         try {
             // Check if this book is already in the user's library
             const existingBook = userBooks.find(b => b.bookKey === bookKey);
-            console.log("Existing book found:", !!existingBook, "Total user books:", userBooks.length);
 
             if (newStatus === 'none') {
                 // Remove from library
@@ -426,18 +410,14 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             } else {
                 if (existingBook) {
                     // Update existing book status
-                    console.log("Updating existing book status to:", newStatus);
                     await updateBookStatus(effectiveUser.fid, bookKey, newStatus);
-                    console.log("Update successful, showing toast");
                     showToast(`Status updated to ${STATUS_CONFIG[newStatus].label}`, "success");
                 } else {
                     // Add new book to library
-                    console.log("Adding new book to library");
                     // Handle both BookData and UserBook property names
                     const title = (selectedBook as any).title || (selectedBook as any).bookTitle || 'Unknown Title';
                     const authors = (selectedBook as any).author_name || (selectedBook as any).bookAuthors || ['Unknown Author'];
                     const coverId = (selectedBook as any).cover_i || (selectedBook as any).coverId;
-                    console.log("Book data:", { title, authors, coverId });
 
                     const bookData: BookData = {
                         key: bookKey,
@@ -446,16 +426,13 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         cover_i: coverId,
                         first_publish_year: (selectedBook as any).first_publish_year
                     };
-                    console.log("Calling saveBookToFirestore with:", { fid: effectiveUser.fid, status: newStatus });
                     await saveBookToFirestore(bookData, effectiveUser.fid, newStatus);
-                    console.log("Save successful, showing toast");
                     showToast(`Added "${title}" to library!`, "success");
                 }
                 setSelectedBook(null); // Redirect to library
             }
         } catch (error) {
             console.error("Error updating status:", error);
-            console.error("Error details:", error);
             showToast("Failed to update status", "error");
         } finally {
             setIsSaving(false);
