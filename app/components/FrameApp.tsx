@@ -7,6 +7,7 @@ import { saveBookToFirestore } from "@/lib/firestoreUtils";
 
 export default function FrameApp() {
     const [isSDKLoaded, setIsSDKLoaded] = useState(false);
+    const [farcasterUser, setFarcasterUser] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<BookData[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -17,9 +18,11 @@ export default function FrameApp() {
     useEffect(() => {
         const load = async () => {
             try {
+                const context = await sdk.context;
+                setFarcasterUser(context.user);
                 await sdk.actions.ready();
             } catch (e) {
-                console.error("Error calling sdk.actions.ready:", e);
+                console.error("Error loading SDK:", e);
             }
         };
         if (sdk && !isSDKLoaded) {
@@ -45,10 +48,15 @@ export default function FrameApp() {
     };
 
     const handleLogBook = async (book: BookData) => {
+        if (!farcasterUser) {
+            setSavedMessage("✗ User not authenticated");
+            return;
+        }
+
         setIsSaving(true);
         setSavedMessage("");
         try {
-            await saveBookToFirestore(book);
+            await saveBookToFirestore(book, farcasterUser.fid);
             setSavedMessage(`✓ Logged "${book.title}"`);
             setSelectedBook(null);
             setTimeout(() => setSavedMessage(""), 3000);
@@ -69,6 +77,11 @@ export default function FrameApp() {
                         readGoods
                     </h1>
                     <p className="text-gray-600">Log your reading journey</p>
+                    {farcasterUser && (
+                        <p className="text-sm text-gray-500 mt-2">
+                            Welcome, @{farcasterUser.username || `FID ${farcasterUser.fid}`}
+                        </p>
+                    )}
                 </div>
 
                 {/* Search Form */}
@@ -94,8 +107,8 @@ export default function FrameApp() {
                 {/* Saved Message */}
                 {savedMessage && (
                     <div className={`mb-4 p-3 rounded-lg text-center ${savedMessage.startsWith("✓")
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
                         }`}>
                         {savedMessage}
                     </div>
@@ -136,7 +149,7 @@ export default function FrameApp() {
                                         )}
                                         <button
                                             onClick={() => handleLogBook(book)}
-                                            disabled={isSaving}
+                                            disabled={isSaving || !farcasterUser}
                                             className="px-4 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 disabled:bg-gray-400 transition-colors"
                                         >
                                             {isSaving ? "Logging..." : "Log This Book"}
