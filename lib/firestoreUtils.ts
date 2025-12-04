@@ -1,17 +1,15 @@
 import { db } from './firebase';
+import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
 import { BookData } from './openLibrary';
 
 const BOOKS_COLLECTION = 'books';
 
 export async function saveBookToFirestore(book: BookData) {
     try {
-        // Use Open Library key as document ID to prevent duplicates
-        // Key usually looks like "/works/OL123W", we'll strip the prefix or just use it as is if compatible
         const docId = book.key.replace('/works/', '');
+        const docRef = doc(db, BOOKS_COLLECTION, docId);
 
-        const docRef = db.collection(BOOKS_COLLECTION).doc(docId);
-
-        await docRef.set({
+        await setDoc(docRef, {
             ...book,
             updatedAt: new Date(),
         }, { merge: true });
@@ -27,8 +25,9 @@ export async function saveBookToFirestore(book: BookData) {
 export async function checkBookExists(key: string): Promise<boolean> {
     try {
         const docId = key.replace('/works/', '');
-        const doc = await db.collection(BOOKS_COLLECTION).doc(docId).get();
-        return doc.exists;
+        const docRef = doc(db, BOOKS_COLLECTION, docId);
+        const docSnap = await getDoc(docRef);
+        return docSnap.exists();
     } catch (error) {
         console.error('Error checking book existence:', error);
         return false;
