@@ -503,48 +503,47 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     </form>
                 </div>
 
+
                 {/* Dropdown Menu */}
-                {menuOpen && (
-                    <>
-                        <div
-                            className="fixed inset-0 bg-black bg-opacity-20 z-40 transition-opacity duration-300"
-                            onClick={() => setMenuOpen(false)}
-                        />
-                        <div
-                            className="fixed top-0 left-0 w-48 bg-white h-screen z-50 shadow-2xl transition-transform duration-300 ease-in-out"
-                            style={{ transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)' }}
-                        >
-                            <div className="p-4">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="font-bold text-lg text-gray-800">Menu</h2>
-                                    <button
-                                        onClick={() => setMenuOpen(false)}
-                                        className="text-gray-500 hover:text-gray-800 p-1"
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
-                                <div className="space-y-1">
-                                    {['all', 'completed', 'current', 'desired'].map(f => (
-                                        <button
-                                            key={f}
-                                            onClick={() => {
-                                                setFilter(f as any);
-                                                setMenuOpen(false);
-                                            }}
-                                            className={`block w-full text-left px-3 py-2 rounded-md transition-colors text-sm ${filter === f
-                                                ? 'bg-gray-100 text-gray-900 font-semibold'
-                                                : 'text-gray-600 hover:bg-gray-50'
-                                                }`}
-                                        >
-                                            {f.charAt(0).toUpperCase() + f.slice(1)}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                {/* Backdrop */}
+                <div
+                    className={`fixed inset-0 bg-black z-40 transition-opacity duration-300 ${menuOpen ? 'bg-opacity-20' : 'bg-opacity-0 pointer-events-none'}`}
+                    onClick={() => setMenuOpen(false)}
+                />
+                {/* Menu */}
+                <div
+                    className="fixed top-0 left-0 w-48 bg-white h-screen z-50 shadow-2xl transition-transform duration-300 ease-in-out"
+                    style={{ transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)' }}
+                >
+                    <div className="p-4">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="font-bold text-lg text-gray-800">Menu</h2>
+                            <button
+                                onClick={() => setMenuOpen(false)}
+                                className="text-gray-500 hover:text-gray-800 p-1"
+                            >
+                                ✕
+                            </button>
                         </div>
-                    </>
-                )}
+                        <div className="space-y-1">
+                            {['all', 'completed', 'current', 'desired'].map(f => (
+                                <button
+                                    key={f}
+                                    onClick={() => {
+                                        setFilter(f as any);
+                                        setMenuOpen(false);
+                                    }}
+                                    className={`block w-full text-left px-3 py-2 rounded-md transition-colors text-sm ${filter === f
+                                        ? 'bg-gray-100 text-gray-900 font-semibold'
+                                        : 'text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="max-w-6xl mx-auto p-4 md:p-8">
