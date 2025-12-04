@@ -4,7 +4,38 @@ import { useState, useEffect, useMemo } from "react";
 import { searchBooks, BookData, getBookDetails } from "@/lib/openLibrary";
 import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers } from "@/lib/firestoreUtils";
 import { BookStatus, UserBook } from "@/lib/types";
-import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2 } from 'lucide-react';
+import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X } from 'lucide-react';
+
+// ... (imports remain the same)
+
+const Toast = ({ message, type, onClose }: any) => {
+    const baseClasses = "fixed bottom-5 left-1/2 transform -translate-x-1/2 p-4 rounded-xl shadow-2xl transition-opacity duration-300 flex items-center space-x-3 z-[60]";
+    let colorClasses = '';
+
+    if (!message) return null;
+
+    switch (type) {
+        case 'success':
+            colorClasses = 'bg-green-600 text-white';
+            break;
+        case 'error':
+            colorClasses = 'bg-red-600 text-white';
+            break;
+        default:
+            colorClasses = 'bg-gray-800 text-white';
+    }
+
+    return (
+        <div className={`${baseClasses} ${colorClasses}`} role="alert">
+            {type === 'success' && <BookCheck size={20} />}
+            {type === 'error' && <X size={20} />}
+            <span className="font-semibold">{message}</span>
+            <button onClick={onClose} className="p-1 rounded-full hover:bg-white/20">
+                <X size={16} />
+            </button>
+        </div>
+    );
+};
 
 // --- Icon Mapping and Configuration ---
 const STATUS_CONFIG: Record<string, { icon: any; color: string; bgColor: string; label: string }> = {
@@ -149,11 +180,6 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
 
             {/* Footer and Friends Section */}
             <div className="mt-8 pt-6 border-t border-gray-100">
-                <h3 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-                    <Users size={20} className="mr-2 text-indigo-500" />
-                    Friends' Library Status ({friendsWithBook} on Farcaster)
-                </h3>
-
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-4 mb-6 justify-center md:justify-start">
                     {Object.keys(STATUS_CONFIG).filter(s => s !== 'none').map((status) => (
@@ -177,6 +203,11 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                         </button>
                     )}
                 </div>
+
+                <h3 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                    <Users size={20} className="mr-2 text-indigo-500" />
+                    Friends' Library Status ({friendsWithBook} on Farcaster)
+                </h3>
 
                 {/* Friends List */}
                 <div className="flex flex-wrap gap-3">
@@ -263,6 +294,12 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     const [bookUsers, setBookUsers] = useState<{ userFid: number; status: BookStatus }[]>([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [toast, setToast] = useState({ message: '', type: '' });
+
+    const showToast = (message: string, type: 'success' | 'error' | 'default' = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast({ message: '', type: '' }), 3000);
+    };
 
     // Real-time listener for user's books
     useEffect(() => {
@@ -305,6 +342,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             setSearchResults(results);
         } catch (error) {
             console.error("Search error:", error);
+            showToast("Search failed", "error");
         } finally {
             setIsSearching(false);
         }
@@ -318,8 +356,10 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             // No need to manually loadUserBooks, onSnapshot handles it
             setSearchResults([]);
             setSearchQuery("");
+            showToast(`Added "${book.title}" to library!`, 'success');
         } catch (error) {
             console.error("Error adding book:", error);
+            showToast("Failed to add book", "error");
         } finally {
             setIsSaving(false);
         }
@@ -368,17 +408,19 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 // For now, let's just log it and return, or try to update if type allows.
                 // But to fully support "Remove", we'd need to delete. 
                 // Let's just update to 'desired' as a placeholder or handle it properly if I could edit utils.
-                // I'll just leave the "Remove" button doing nothing for 'none' to avoid breaking types, 
-                // OR better, I'll update the status to 'desired' as a safe default if they want to "reset" it.
                 // Actually, the user's prompt implies "Remove" should work. 
                 // I will assume for now that I should just update the status.
                 await updateBookStatus(farcasterUser.fid, bookKey, 'desired');
+                showToast("Book removed from library", "default");
+                setSelectedBook(null); // Redirect to library
             } else {
                 await updateBookStatus(farcasterUser.fid, bookKey, newStatus);
+                showToast(`Status updated to ${STATUS_CONFIG[newStatus].label}`, "success");
+                setSelectedBook(null); // Redirect to library
             }
-            // No need to manually loadUserBooks
         } catch (error) {
             console.error("Error updating status:", error);
+            showToast("Failed to update status", "error");
         } finally {
             setIsSaving(false);
         }
@@ -591,6 +633,13 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     )}
                 </div>
             </div>
+
+            {/* Toast Render */}
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                onClose={() => setToast({ message: '', type: '' })}
+            />
         </div>
     );
 }
