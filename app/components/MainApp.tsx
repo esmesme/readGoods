@@ -149,8 +149,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                             key={status}
                                             onClick={() => handleStatusChange(status)}
                                             className={`px-4 py-2 rounded border ${selectedBook.userStatus === status
-                                                    ? 'bg-black text-white'
-                                                    : 'bg-white text-black border-black hover:bg-gray-100'
+                                                ? 'bg-black text-white'
+                                                : 'bg-white text-black border-black hover:bg-gray-100'
                                                 }`}
                                         >
                                             {getStatusIcon(status)} {status}
@@ -240,7 +240,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         <div className="min-h-screen bg-white">
             {/* Top Nav */}
             <div className="border-b border-black">
-                <div className="flex items-center justify-between p-4">
+                <div className="flex items-center p-4 gap-4">
                     <button
                         onClick={() => setMenuOpen(!menuOpen)}
                         className="text-2xl font-bold"
@@ -248,12 +248,12 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         ☰
                     </button>
 
-                    <div className="flex items-center gap-2 absolute left-1/2 transform -translate-x-1/2">
+                    <div className="flex-1 flex items-center justify-center gap-2">
                         <span className="font-bold letter-spacing-wide">READ GOOD</span>
                         <span className="text-xl">📚</span>
                     </div>
 
-                    <form onSubmit={handleSearch} className="flex-1 max-w-xs ml-auto">
+                    <form onSubmit={handleSearch} className="w-64">
                         <input
                             type="text"
                             value={searchQuery}
@@ -263,7 +263,6 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         />
                     </form>
                 </div>
-
                 {/* Dropdown Menu with Overlay */}
                 {menuOpen && (
                     <>
