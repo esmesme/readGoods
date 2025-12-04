@@ -155,7 +155,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                         {book.title || book.bookTitle}
                     </h2>
                     {(book.author_name || book.bookAuthors) && (
-                        <p className="text-lg text-indigo-600 font-medium mb-4">
+                        <p className="text-lg text-gray-800 font-medium mb-4">
                             by {Array.isArray(book.author_name) ? book.author_name.join(", ") : book.bookAuthors}
                         </p>
                     )}
@@ -189,7 +189,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                             size={24}
                             isButton={true}
                             onClick={() => onStatusChange(status)}
-                            className={userStatus === status ? 'ring-4 ring-indigo-300' : ''}
+                            className={userStatus === status ? 'ring-4 ring-gray-400' : ''}
                         />
                     ))}
                     {userStatus && userStatus !== 'none' && (
@@ -205,7 +205,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                 </div>
 
                 <h3 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-                    <Users size={20} className="mr-2 text-indigo-500" />
+                    <Users size={20} className="mr-2 text-gray-700" />
                     Friends' Library Status ({friendsWithBook} on Farcaster)
                 </h3>
 
@@ -475,7 +475,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     </button>
 
                     <div className="flex-1 flex items-center justify-start gap-2">
-                        <span className="font-extrabold text-xl tracking-tight text-indigo-700">READ GOOD</span>
+                        <span className="font-extrabold text-xl tracking-tight text-gray-900">READ GOOD</span>
                         <span className="text-2xl">📚</span>
                     </div>
 
@@ -485,7 +485,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search books..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all"
                         />
                     </form>
                 </div>
@@ -498,7 +498,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search books..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all"
                         />
                     </form>
                 </div>
@@ -510,7 +510,10 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                             className="fixed inset-0 bg-black bg-opacity-20 z-40 transition-opacity duration-300"
                             onClick={() => setMenuOpen(false)}
                         />
-                        <div className="fixed top-0 left-0 w-48 bg-white h-screen z-50 shadow-2xl transform transition-transform duration-300 ease-in-out animate-in slide-in-from-left">
+                        <div
+                            className="fixed top-0 left-0 w-48 bg-white h-screen z-50 shadow-2xl transition-transform duration-300 ease-in-out"
+                            style={{ transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)' }}
+                        >
                             <div className="p-4">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="font-bold text-lg text-gray-800">Menu</h2>
@@ -530,7 +533,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                                 setMenuOpen(false);
                                             }}
                                             className={`block w-full text-left px-3 py-2 rounded-md transition-colors text-sm ${filter === f
-                                                ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                                                ? 'bg-gray-100 text-gray-900 font-semibold'
                                                 : 'text-gray-600 hover:bg-gray-50'
                                                 }`}
                                         >
@@ -619,7 +622,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                         </div>
                                     </div>
 
-                                    <h3 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-2 mb-1 group-hover:text-indigo-700 transition-colors">
+                                    <h3 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-2 mb-1 group-hover:text-gray-900 transition-colors">
                                         {book.bookTitle}
                                     </h3>
                                     {book.bookAuthors && (
