@@ -14,10 +14,12 @@ export default function FrameApp() {
         const load = async () => {
             try {
                 const context = await sdk.context;
-                setFarcasterUser(context.user);
+                setFarcasterUser(context?.user || null);
                 await sdk.actions.ready();
             } catch (e) {
-                console.error("Error loading SDK:", e);
+                console.log("Not in Farcaster frame, using fallback");
+                // Not in a Farcaster frame - this is expected in regular browser
+                setFarcasterUser(null);
             }
         };
         if (sdk && !isSDKLoaded) {
