@@ -49,10 +49,16 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     };
 
     const handleAddBook = async (book: BookData, status: BookStatus) => {
-        if (!farcasterUser?.fid) return;
+        console.log("Adding book:", book.title, "Status:", status, "User FID:", farcasterUser?.fid);
+        if (!farcasterUser?.fid) {
+            console.error("No user FID found");
+            return;
+        }
         try {
             await saveBookToFirestore(book, farcasterUser.fid, status);
+            console.log("Book saved to Firestore");
             await loadUserBooks();
+            console.log("User books reloaded");
             setSearchResults([]);
             setSearchQuery("");
         } catch (error) {
