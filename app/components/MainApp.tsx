@@ -100,6 +100,16 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         }
     };
 
+    const getLibraryTagline = () => {
+        const username = farcasterUser?.username || 'User';
+        switch (filter) {
+            case 'all': return `All of ${username}'s books`;
+            case 'current': return `${username} is currently reading...`;
+            case 'completed': return `${username}'s completed books`;
+            case 'desired': return `${username} wants to read`;
+        }
+    };
+
     if (selectedBook) {
         return (
             <div className="min-h-screen bg-white p-4">
@@ -159,6 +169,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                             key={status}
                                             onClick={async () => {
                                                 await handleAddBook(selectedBook as BookData, status);
+                                                await loadUserBooks();
                                                 setSelectedBook(null);
                                                 setSearchResults([]);
                                             }}
@@ -230,21 +241,19 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             {/* Top Nav */}
             <div className="border-b border-black">
                 <div className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setMenuOpen(!menuOpen)}
-                            className="text-2xl font-bold"
-                        >
-                            ☰
-                        </button>
+                    <button
+                        onClick={() => setMenuOpen(!menuOpen)}
+                        className="text-2xl font-bold"
+                    >
+                        ☰
+                    </button>
 
-                        <div className="flex items-center gap-2">
-                            <span className="font-bold letter-spacing-wide">READ GOOD</span>
-                            <span className="text-xl">📚</span>
-                        </div>
+                    <div className="flex items-center gap-2 absolute left-1/2 transform -translate-x-1/2">
+                        <span className="font-bold letter-spacing-wide">READ GOOD</span>
+                        <span className="text-xl">📚</span>
                     </div>
 
-                    <form onSubmit={handleSearch} className="flex-1 max-w-xs ml-4">
+                    <form onSubmit={handleSearch} className="flex-1 max-w-xs ml-auto">
                         <input
                             type="text"
                             value={searchQuery}
@@ -255,33 +264,39 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     </form>
                 </div>
 
-                {/* Dropdown Menu */}
+                {/* Dropdown Menu with Overlay */}
                 {menuOpen && (
-                    <div className="absolute top-0 left-0 w-64 bg-white border-r border-black h-screen z-50">
-                        <div className="p-4">
-                            <button
-                                onClick={() => setMenuOpen(false)}
-                                className="absolute top-4 right-4 text-2xl"
-                            >
-                                ✕
-                            </button>
-                            <div className="mt-12 space-y-4">
-                                {['all', 'completed', 'current', 'desired'].map(f => (
-                                    <button
-                                        key={f}
-                                        onClick={() => {
-                                            setFilter(f as any);
-                                            setMenuOpen(false);
-                                        }}
-                                        className={`block w-full text-left px-4 py-2 ${filter === f ? 'font-bold' : ''
-                                            }`}
-                                    >
-                                        {f.charAt(0).toUpperCase() + f.slice(1)}
-                                    </button>
-                                ))}
+                    <>
+                        <div
+                            className="fixed inset-0 bg-black bg-opacity-20 z-40"
+                            onClick={() => setMenuOpen(false)}
+                        />
+                        <div className="absolute top-0 left-0 w-64 bg-white border-r border-black h-screen z-50">
+                            <div className="p-4">
+                                <button
+                                    onClick={() => setMenuOpen(false)}
+                                    className="absolute top-4 right-4 text-2xl"
+                                >
+                                    ✕
+                                </button>
+                                <div className="mt-12 space-y-4">
+                                    {['all', 'completed', 'current', 'desired'].map(f => (
+                                        <button
+                                            key={f}
+                                            onClick={() => {
+                                                setFilter(f as any);
+                                                setMenuOpen(false);
+                                            }}
+                                            className={`block w-full text-left px-4 py-2 ${filter === f ? 'font-bold' : ''
+                                                }`}
+                                        >
+                                            {f.charAt(0).toUpperCase() + f.slice(1)}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </>
                 )}
             </div>
 
@@ -344,7 +359,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
             {/* Library */}
             <div className="p-4">
-                <h2 className="text-xl font-bold mb-4 letter-spacing-wide">LIBRARY</h2>
+                <h2 className="text-xl font-bold mb-1 letter-spacing-wide">LIBRARY</h2>
+                <p className="text-sm text-gray-600 mb-4">{getLibraryTagline()}</p>
                 {filteredBooks.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
                         <p className="text-2xl mb-2">:(</p>
