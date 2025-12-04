@@ -114,60 +114,62 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 </button>
 
                 <div className="max-w-2xl mx-auto">
-                    <div className="flex gap-6 mb-6">
-                        {((selectedBook as any).cover_i || (selectedBook as any).coverId) && (
-                            <img
-                                src={`https://covers.openlibrary.org/b/id/${(selectedBook as any).cover_i || (selectedBook as any).coverId}-L.jpg`}
-                                alt={(selectedBook as any).title || (selectedBook as any).bookTitle}
-                                className="w-32 h-48 object-cover rounded shadow-lg"
-                            />
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold mb-2">{(selectedBook as any).title || (selectedBook as any).bookTitle}</h2>
+                        {(selectedBook as any).author_name && (
+                            <p className="text-gray-600 text-sm mb-4">by {(selectedBook as any).author_name.join(", ")}</p>
                         )}
-                        <div className="flex-1">
-                            <h2 className="text-2xl font-bold mb-2">{(selectedBook as any).title || (selectedBook as any).bookTitle}</h2>
-                            {(selectedBook as any).author_name && (
-                                <p className="text-gray-600 mb-4">by {(selectedBook as any).author_name.join(", ")}</p>
-                            )}
 
-                            {selectedBook.userStatus && (
-                                <div className="mb-4">
-                                    <p className="text-sm font-semibold mb-2">Change Status:</p>
-                                    <div className="flex gap-2">
-                                        {(['desired', 'current', 'completed'] as BookStatus[]).map(status => (
-                                            <button
-                                                key={status}
-                                                onClick={() => handleStatusChange(status)}
-                                                className={`px-4 py-2 rounded border ${selectedBook.userStatus === status
-                                                    ? 'bg-black text-white'
-                                                    : 'bg-white text-black border-black hover:bg-gray-100'
-                                                    }`}
-                                            >
-                                                {getStatusIcon(status)} {status}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {!selectedBook.userStatus && farcasterUser && (
-                                <div className="mb-4">
-                                    <p className="text-sm font-semibold mb-2">Add to Library:</p>
-                                    <div className="flex gap-2">
-                                        {(['desired', 'current', 'completed'] as BookStatus[]).map(status => (
-                                            <button
-                                                key={status}
-                                                onClick={() => {
-                                                    handleAddBook(selectedBook as BookData, status);
-                                                    setSelectedBook(null);
-                                                }}
-                                                className="px-4 py-2 rounded border bg-white text-black border-black hover:bg-gray-100"
-                                            >
-                                                {getStatusIcon(status)} {status}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+                        <div className="mb-4">
+                            {((selectedBook as any).cover_i || (selectedBook as any).coverId) && (
+                                <img
+                                    src={`https://covers.openlibrary.org/b/id/${(selectedBook as any).cover_i || (selectedBook as any).coverId}-L.jpg`}
+                                    alt={(selectedBook as any).title || (selectedBook as any).bookTitle}
+                                    className="w-48 h-auto rounded shadow-lg mb-4"
+                                />
                             )}
                         </div>
+
+                        {selectedBook.userStatus && (
+                            <div className="mb-4">
+                                <p className="text-sm font-semibold mb-2">Change Status:</p>
+                                <div className="flex gap-2">
+                                    {(['desired', 'current', 'completed'] as BookStatus[]).map(status => (
+                                        <button
+                                            key={status}
+                                            onClick={() => handleStatusChange(status)}
+                                            className={`px-4 py-2 rounded border ${selectedBook.userStatus === status
+                                                    ? 'bg-black text-white'
+                                                    : 'bg-white text-black border-black hover:bg-gray-100'
+                                                }`}
+                                        >
+                                            {getStatusIcon(status)} {status}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {!selectedBook.userStatus && farcasterUser && (
+                            <div className="mb-4">
+                                <p className="text-sm font-semibold mb-2">Add to Library:</p>
+                                <div className="flex gap-2">
+                                    {(['desired', 'current', 'completed'] as BookStatus[]).map(status => (
+                                        <button
+                                            key={status}
+                                            onClick={async () => {
+                                                await handleAddBook(selectedBook as BookData, status);
+                                                setSelectedBook(null);
+                                                setSearchResults([]);
+                                            }}
+                                            className="px-4 py-2 rounded border bg-white text-black border-black hover:bg-gray-100"
+                                        >
+                                            {getStatusIcon(status)} {status}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {loadingDetails ? (
@@ -228,16 +230,18 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             {/* Top Nav */}
             <div className="border-b border-black">
                 <div className="flex items-center justify-between p-4">
-                    <button
-                        onClick={() => setMenuOpen(!menuOpen)}
-                        className="text-2xl font-bold"
-                    >
-                        ☰
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setMenuOpen(!menuOpen)}
+                            className="text-2xl font-bold"
+                        >
+                            ☰
+                        </button>
 
-                    <div className="flex items-center gap-2">
-                        <span className="font-bold letter-spacing-wide">READ GOOD</span>
-                        <span className="text-xl">📚</span>
+                        <div className="flex items-center gap-2">
+                            <span className="font-bold letter-spacing-wide">READ GOOD</span>
+                            <span className="text-xl">📚</span>
+                        </div>
                     </div>
 
                     <form onSubmit={handleSearch} className="flex-1 max-w-xs ml-4">
@@ -284,7 +288,18 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             {/* Search Results */}
             {searchResults.length > 0 && (
                 <div className="p-4 border-b border-black bg-gray-50">
-                    <h3 className="font-semibold mb-3">Search Results</h3>
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold">Search Results</h3>
+                        <button
+                            onClick={() => {
+                                setSearchResults([]);
+                                setSearchQuery("");
+                            }}
+                            className="text-sm px-3 py-1 border border-black rounded hover:bg-gray-100"
+                        >
+                            Clear
+                        </button>
+                    </div>
                     <div className="space-y-3">
                         {searchResults.map((book, idx) => (
                             <div
@@ -309,7 +324,11 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                     {(['desired', 'current', 'completed'] as BookStatus[]).map(status => (
                                         <button
                                             key={status}
-                                            onClick={() => handleAddBook(book, status)}
+                                            onClick={async () => {
+                                                await handleAddBook(book, status);
+                                                setSearchResults([]);
+                                                setSearchQuery("");
+                                            }}
                                             className="text-xl hover:scale-110 transition-transform"
                                             title={status}
                                         >
