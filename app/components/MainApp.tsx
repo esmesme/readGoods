@@ -421,6 +421,17 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             {/* Top Nav */}
             <div className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30">
                 <div className="flex items-center p-4 gap-4 max-w-6xl mx-auto">
+                    <button
+                        onClick={() => setMenuOpen(!menuOpen)}
+                        className="text-gray-700 hover:bg-gray-100 p-2 rounded-lg transition-colors"
+                    >
+                        <div className="space-y-1.5">
+                            <span className="block w-6 h-0.5 bg-current"></span>
+                            <span className="block w-6 h-0.5 bg-current"></span>
+                            <span className="block w-6 h-0.5 bg-current"></span>
+                        </div>
+                    </button>
+
                     <div className="flex-1 flex items-center justify-start gap-2">
                         <span className="font-extrabold text-xl tracking-tight text-indigo-700">READ GOOD</span>
                         <span className="text-2xl">📚</span>
@@ -435,17 +446,6 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                         />
                     </form>
-
-                    <button
-                        onClick={() => setMenuOpen(!menuOpen)}
-                        className="text-gray-700 hover:bg-gray-100 p-2 rounded-lg transition-colors"
-                    >
-                        <div className="space-y-1.5">
-                            <span className="block w-6 h-0.5 bg-current"></span>
-                            <span className="block w-6 h-0.5 bg-current"></span>
-                            <span className="block w-6 h-0.5 bg-current"></span>
-                        </div>
-                    </button>
                 </div>
 
                 {/* Mobile Search */}
@@ -468,7 +468,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                             className="fixed inset-0 bg-black bg-opacity-20 z-40 transition-opacity duration-300"
                             onClick={() => setMenuOpen(false)}
                         />
-                        <div className="fixed top-0 right-0 w-48 bg-white h-screen z-50 shadow-2xl transform transition-transform duration-300 ease-in-out animate-in slide-in-from-right">
+                        <div className="fixed top-0 left-0 w-48 bg-white h-screen z-50 shadow-2xl transform transition-transform duration-300 ease-in-out animate-in slide-in-from-left">
                             <div className="p-4">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="font-bold text-lg text-gray-800">Menu</h2>
