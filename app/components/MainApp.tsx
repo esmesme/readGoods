@@ -390,32 +390,36 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         setIsSaving(true);
 
         try {
-            if (newStatus === 'none') {
-                // For 'none', we effectively remove the status. 
-                // In our current schema, we might want to delete the document or set status to null.
-                // For now, let's update it to a 'removed' state or just keep it simple and update.
-                // Since the user asked for "Remove", let's assume we want to delete the userBook entry.
-                // However, utils only has update/save. Let's use update for now to a 'none' status if we supported it,
-                // or just keep the previous logic but with isSaving.
-                // Ideally: deleteDoc(doc(db, 'userBooks', `${farcasterUser.fid}_${docId}`))
-                // But let's stick to updateBookStatus for safety unless we add delete util.
-                // For this specific request, "Remove" button sets status to 'None'.
-                // Let's actually implement a delete or just set it to 'desired' as a fallback if 'none' isn't in types.
-                // Wait, the user's code had 'None' in the UI but the type might not support it.
-                // Let's check types.ts. If BookStatus doesn't include 'none', we can't save it.
-                // Assuming we want to support "Remove", we should probably delete the book from user's list.
+            // Check if this book is already in the user's library
+            const existingBook = userBooks.find(b => b.bookKey === bookKey);
 
-                // For now, let's just log it and return, or try to update if type allows.
-                // But to fully support "Remove", we'd need to delete. 
-                // Let's just update to 'desired' as a placeholder or handle it properly if I could edit utils.
-                // Actually, the user's prompt implies "Remove" should work. 
-                // I will assume for now that I should just update the status.
+            if (newStatus === 'none') {
+                // Remove from library
                 await updateBookStatus(farcasterUser.fid, bookKey, 'desired');
                 showToast("Book removed from library", "default");
                 setSelectedBook(null); // Redirect to library
             } else {
-                await updateBookStatus(farcasterUser.fid, bookKey, newStatus);
-                showToast(`Status updated to ${STATUS_CONFIG[newStatus].label}`, "success");
+                if (existingBook) {
+                    // Update existing book status
+                    await updateBookStatus(farcasterUser.fid, bookKey, newStatus);
+                    showToast(`Status updated to ${STATUS_CONFIG[newStatus].label}`, "success");
+                } else {
+                    // Add new book to library
+                    // Handle both BookData and UserBook property names
+                    const title = (selectedBook as any).title || (selectedBook as any).bookTitle || 'Unknown Title';
+                    const authors = (selectedBook as any).author_name || (selectedBook as any).bookAuthors || ['Unknown Author'];
+                    const coverId = (selectedBook as any).cover_i || (selectedBook as any).coverId;
+
+                    const bookData: BookData = {
+                        key: bookKey,
+                        title: title,
+                        author_name: Array.isArray(authors) ? authors : [authors],
+                        cover_i: coverId,
+                        first_publish_year: (selectedBook as any).first_publish_year
+                    };
+                    await saveBookToFirestore(bookData, farcasterUser.fid, newStatus);
+                    showToast(`Added "${title}" to library!`, "success");
+                }
                 setSelectedBook(null); // Redirect to library
             }
         } catch (error) {
