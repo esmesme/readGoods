@@ -296,6 +296,9 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [toast, setToast] = useState({ message: '', type: '' });
 
+    // Fallback user for development/testing if not in Farcaster frame
+    const effectiveUser = farcasterUser?.fid ? farcasterUser : { fid: 999999, username: 'dev_user' };
+
     const showToast = (message: string, type: 'success' | 'error' | 'default' = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast({ message: '', type: '' }), 3000);
@@ -303,11 +306,11 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
     // Real-time listener for user's books
     useEffect(() => {
-        if (!farcasterUser?.fid) return;
+        if (!effectiveUser?.fid) return;
 
         const q = query(
             collection(db, 'userBooks'),
-            where('userFid', '==', farcasterUser.fid)
+            where('userFid', '==', effectiveUser.fid)
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -330,7 +333,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         });
 
         return () => unsubscribe();
-    }, [farcasterUser?.fid, selectedBook ? ('bookKey' in selectedBook ? selectedBook.bookKey : selectedBook.key) : null]); // Re-attach if user changes
+    }, [effectiveUser?.fid, selectedBook ? ('bookKey' in selectedBook ? selectedBook.bookKey : selectedBook.key) : null]); // Re-attach if user changes
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -349,10 +352,10 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     };
 
     const handleAddBook = async (book: BookData, status: BookStatus) => {
-        if (!farcasterUser?.fid) return;
+        if (!effectiveUser?.fid) return;
         setIsSaving(true);
         try {
-            await saveBookToFirestore(book, farcasterUser.fid, status);
+            await saveBookToFirestore(book, effectiveUser.fid, status);
             // No need to manually loadUserBooks, onSnapshot handles it
             setSearchResults([]);
             setSearchQuery("");
@@ -384,9 +387,22 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     };
 
     const handleStatusChange = async (newStatus: BookStatus | 'none') => {
-        if (!farcasterUser?.fid || !selectedBook) return;
+        console.log("handleStatusChange called with:", newStatus);
+
+        if (!effectiveUser?.fid) {
+            console.error("No user found");
+            showToast("Please sign in", "error");
+            return;
+        }
+
+        if (!selectedBook) {
+            console.error("No selected book");
+            return;
+        }
 
         const bookKey = ('bookKey' in selectedBook ? selectedBook.bookKey : selectedBook.key) as string;
+        console.log("Processing book:", bookKey);
+
         setIsSaving(true);
 
         try {
@@ -395,13 +411,13 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
             if (newStatus === 'none') {
                 // Remove from library
-                await updateBookStatus(farcasterUser.fid, bookKey, 'desired');
+                await updateBookStatus(effectiveUser.fid, bookKey, 'desired');
                 showToast("Book removed from library", "default");
                 setSelectedBook(null); // Redirect to library
             } else {
                 if (existingBook) {
                     // Update existing book status
-                    await updateBookStatus(farcasterUser.fid, bookKey, newStatus);
+                    await updateBookStatus(effectiveUser.fid, bookKey, newStatus);
                     showToast(`Status updated to ${STATUS_CONFIG[newStatus].label}`, "success");
                 } else {
                     // Add new book to library
@@ -417,7 +433,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         cover_i: coverId,
                         first_publish_year: (selectedBook as any).first_publish_year
                     };
-                    await saveBookToFirestore(bookData, farcasterUser.fid, newStatus);
+                    await saveBookToFirestore(bookData, effectiveUser.fid, newStatus);
                     showToast(`Added "${title}" to library!`, "success");
                 }
                 setSelectedBook(null); // Redirect to library
@@ -435,7 +451,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         : userBooks.filter(book => book.status === filter);
 
     const getLibraryTagline = () => {
-        const username = farcasterUser?.username || 'User';
+        const username = effectiveUser?.username || 'User';
         switch (filter) {
             case 'all': return `All of ${username}'s books`;
             case 'current': return `${username} is currently reading...`;
