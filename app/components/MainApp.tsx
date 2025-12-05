@@ -53,7 +53,9 @@ interface MainAppProps {
 // --- Components ---
 
 const shareToFarcaster = (text: string) => {
-    const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}`;
+    const appUrl = "https://read-goods.vercel.app"; // Placeholder URL
+    const fullText = `${text}\n\n${appUrl}`;
+    const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(fullText)}`;
     try {
         sdk.actions.openUrl(url);
     } catch (e) {
