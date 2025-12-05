@@ -671,34 +671,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             </div>
 
             <div className="max-w-6xl mx-auto p-4 md:p-8">
-                {/* Search Results */}
-                {searchResults.length > 0 && (
-                    <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-bold text-gray-700 text-lg">Search Results</h3>
-                            <button
-                                onClick={() => {
-                                    setSearchResults([]);
-                                    setSearchQuery("");
-                                }}
-                                className="text-sm px-4 py-1.5 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                Clear Results
-                            </button>
-                        </div>
-                        <div className="space-y-3">
-                            {searchResults.map((book, idx) => (
-                                <SearchResult
-                                    key={idx}
-                                    book={book}
-                                    onStatusChange={(status: BookStatus) => handleAddBook(book, status)}
-                                    onClick={() => handleBookClick(book)}
-                                    isSaving={isSaving}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
+
 
                 {/* Library */}
                 <div>
