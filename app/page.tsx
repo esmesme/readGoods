@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import FrameApp from "./components/FrameApp";
 
 export const metadata: Metadata = {
-    title: "readGoods",
+    title: "readgoods",
     description: "Log your reading journey.",
     other: {
         "fc:frame": "vNext",

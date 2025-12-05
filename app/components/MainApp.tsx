@@ -137,7 +137,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
 
     const handleShare = () => {
         const title = book.title || book.bookTitle;
-        let text = `Check out ${title} on Read Goods!`;
+        let text = `Check out ${title} on readgoods!`;
         if (userStatus === 'current') {
             text = `I just started reading ${title} today!`;
         } else if (userStatus === 'completed') {
@@ -620,7 +620,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     </button>
 
                     <div className="flex-1 flex items-center justify-start gap-2">
-                        <span className="font-extrabold text-xl tracking-tight text-white">READ GOODS</span>
+                        <span className="font-extrabold text-xl tracking-tight text-white">readgoods</span>
                         <img src="/book-icon.png" alt="Book Icon" className="w-16 h-16 object-contain" />
                     </div>
 

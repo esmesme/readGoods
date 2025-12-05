@@ -25,7 +25,7 @@ export default function SplashScreen({ username, onComplete }: SplashScreenProps
                     }`}
             >
                 <h1 className="text-white font-bold text-5xl md:text-7xl letter-spacing-wide mb-8 px-4 text-center">
-                    READ GOOD
+                    readgoods
                 </h1>
                 {username && (
                     <p className="text-white font-light text-xl text-center letter-spacing-wide">
