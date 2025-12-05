@@ -326,6 +326,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     const [showDropdown, setShowDropdown] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const mobileInputRef = useRef<HTMLInputElement>(null);
+    const mobileDropdownRef = useRef<HTMLDivElement>(null);
     const [userBooks, setUserBooks] = useState<UserBook[]>([]);
     const [selectedBook, setSelectedBook] = useState<(BookData & { userStatus?: BookStatus }) | null>(null);
     const [bookDetails, setBookDetails] = useState<any>(null);
@@ -386,8 +388,13 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     // Click outside to close dropdown
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
-                searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            const outsideDesktop = (!dropdownRef.current || !dropdownRef.current.contains(target)) &&
+                (!searchInputRef.current || !searchInputRef.current.contains(target));
+            const outsideMobile = (!mobileDropdownRef.current || !mobileDropdownRef.current.contains(target)) &&
+                (!mobileInputRef.current || !mobileInputRef.current.contains(target));
+
+            if (outsideDesktop && outsideMobile) {
                 setShowDropdown(false);
             }
         };
@@ -691,6 +698,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 {/* Mobile Search with Dropdown */}
                 <div className="md:hidden px-4 pb-4 relative">
                     <input
+                        ref={mobileInputRef}
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -706,7 +714,10 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
                     {/* Mobile Dropdown Results */}
                     {showDropdown && searchResults.length > 0 && (
-                        <div className="absolute top-full left-4 right-4 mt-2 bg-neutral-900 border border-neutral-800 rounded-lg shadow-2xl max-h-96 overflow-y-auto z-50">
+                        <div
+                            ref={mobileDropdownRef}
+                            className="absolute top-full left-4 right-4 mt-2 bg-neutral-900 border border-neutral-800 rounded-lg shadow-2xl max-h-96 overflow-y-auto z-50"
+                        >
                             {searchResults.map((book) => (
                                 <button
                                     key={book.key}
