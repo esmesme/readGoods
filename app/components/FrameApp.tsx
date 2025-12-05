@@ -28,6 +28,19 @@ export default function FrameApp() {
         }
     }, [isSDKLoaded]);
 
+    // Auto-save miniapp after 7 seconds
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            try {
+                sdk.actions.addFrame();
+            } catch (e) {
+                console.log("Error adding frame:", e);
+            }
+        }, 7000);
+
+        return () => clearTimeout(timer);
+    }, []);
+
     if (showSplash) {
         return (
             <SplashScreen
