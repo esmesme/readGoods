@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { BookData } from './openLibrary';
 import { BookStatus, UserBook } from './types';
 
@@ -101,6 +101,108 @@ export async function deleteUserBook(userFid: number, bookKey: string) {
         await deleteDoc(userBookRef);
     } catch (error) {
         console.error('Error deleting user book:', error);
+        throw error;
+    }
+}
+
+const CUSTOM_BOOKS_COLLECTION = 'custom_books';
+
+export interface CustomBook {
+    key: string;
+    title: string;
+    author_name: string[];
+    first_publish_year?: number;
+    description?: string;
+    subjects?: string[];
+    createdBy: number;
+    createdAt: any;
+    updatedAt: any;
+}
+
+export async function addCustomBook(bookData: Omit<CustomBook, 'key' | 'createdAt' | 'updatedAt'>) {
+    try {
+        const docRef = await addDoc(collection(db, CUSTOM_BOOKS_COLLECTION), {
+            ...bookData,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+
+        // Update the doc with its own key for easier reference
+        await updateDoc(docRef, { key: `custom_${docRef.id}` });
+
+        return `custom_${docRef.id}`;
+    } catch (error) {
+        console.error('Error adding custom book:', error);
+        throw error;
+    }
+}
+
+export async function searchCustomBooks(queryText: string): Promise<BookData[]> {
+    try {
+        // Simple client-side filtering for now as Firestore doesn't support full-text search natively
+        // and the dataset is expected to be small initially.
+        const q = query(collection(db, CUSTOM_BOOKS_COLLECTION));
+        const querySnapshot = await getDocs(q);
+
+        const results: BookData[] = [];
+        const lowerQuery = queryText.toLowerCase();
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data() as CustomBook;
+            if (data.title.toLowerCase().includes(lowerQuery) ||
+                data.author_name.some(author => author.toLowerCase().includes(lowerQuery))) {
+                results.push({
+                    key: data.key || `custom_${doc.id}`,
+                    title: data.title,
+                    author_name: data.author_name,
+                    first_publish_year: data.first_publish_year,
+                    cover_i: undefined, // Custom books won't have OL covers by default
+                });
+            }
+        });
+
+        return results;
+    } catch (error) {
+        console.error('Error searching custom books:', error);
+        return [];
+    }
+}
+
+export async function getCustomBookDetails(key: string): Promise<any> {
+    try {
+        const docId = key.replace('custom_', '');
+        const docRef = doc(db, CUSTOM_BOOKS_COLLECTION, docId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data() as CustomBook;
+            return {
+                title: data.title,
+                description: data.description || '',
+                authors: data.author_name.map(name => ({ name })),
+                subjects: data.subjects || [],
+                publish_date: data.first_publish_year?.toString(),
+                isCustom: true,
+                key: data.key
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error('Error getting custom book details:', error);
+        return null;
+    }
+}
+
+export async function updateCustomBook(key: string, updates: Partial<CustomBook>) {
+    try {
+        const docId = key.replace('custom_', '');
+        const docRef = doc(db, CUSTOM_BOOKS_COLLECTION, docId);
+        await updateDoc(docRef, {
+            ...updates,
+            updatedAt: new Date()
+        });
+    } catch (error) {
+        console.error('Error updating custom book:', error);
         throw error;
     }
 }

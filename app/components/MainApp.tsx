@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { searchBooks, BookData, getBookDetails } from "@/lib/openLibrary";
-import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers, deleteUserBook } from "@/lib/firestoreUtils";
+import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers, deleteUserBook, addCustomBook, searchCustomBooks, getCustomBookDetails, updateCustomBook } from "@/lib/firestoreUtils";
 import { BookStatus, UserBook } from "@/lib/types";
-import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X } from 'lucide-react';
+import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus } from 'lucide-react';
 
 // ... (imports remain the same)
 
@@ -297,6 +297,16 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     const [bookUsers, setBookUsers] = useState<{ userFid: number; status: BookStatus }[]>([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Manual Book Entry State
+    const [showManualEntry, setShowManualEntry] = useState(false);
+    const [manualBookForm, setManualBookForm] = useState({
+        title: '',
+        author: '',
+        year: '',
+        description: '',
+        genre: ''
+    });
     const [toast, setToast] = useState({ message: '', type: '' });
 
     // Fallback user for development/testing if not in Farcaster frame
@@ -318,8 +328,14 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         const timeoutId = setTimeout(async () => {
             setIsSearching(true);
             try {
-                const results = await searchBooks(searchQuery);
-                setSearchResults(results);
+                // Search both Open Library and Custom Books in parallel
+                const [olResults, customResults] = await Promise.all([
+                    searchBooks(searchQuery),
+                    searchCustomBooks(searchQuery)
+                ]);
+
+                // Merge results, putting custom books first or mixed? Let's put custom first for visibility
+                setSearchResults([...customResults, ...olResults]);
                 setShowDropdown(true);
             } catch (error) {
                 console.error("Search error:", error);
@@ -382,6 +398,42 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         setSearchQuery("");
         setSearchResults([]);
     };
+    const handleManualBookSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!manualBookForm.title.trim() || !manualBookForm.author.trim()) {
+            showToast("Title and Author are required", "error");
+            return;
+        }
+
+        if (!effectiveUser?.fid) {
+            showToast("Please sign in to add books", "error");
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const newBookKey = await addCustomBook({
+                title: manualBookForm.title,
+                author_name: [manualBookForm.author],
+                first_publish_year: manualBookForm.year ? parseInt(manualBookForm.year) : undefined,
+                description: manualBookForm.description,
+                subjects: manualBookForm.genre.split(',').map(s => s.trim()).filter(Boolean),
+                createdBy: effectiveUser.fid
+            });
+
+            showToast("Book added successfully!", "success");
+            setShowManualEntry(false);
+            setManualBookForm({ title: '', author: '', year: '', description: '', genre: '' });
+
+            // Optionally select the new book immediately
+            // handleBookClick({ ... }) 
+        } catch (error) {
+            console.error("Error adding manual book:", error);
+            showToast("Failed to add book", "error");
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const handleAddBook = async (book: BookData, status: BookStatus) => {
         if (!effectiveUser?.fid) return;
@@ -409,7 +461,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
         // Load details and users in parallel
         const [details, users] = await Promise.all([
-            getBookDetails(bookKey),
+            bookKey.startsWith('custom_') ? getCustomBookDetails(bookKey) : getBookDetails(bookKey),
             getBookUsers(bookKey)
         ]);
 
@@ -476,12 +528,25 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         : userBooks.filter(book => book.status === filter);
 
     const getLibraryTagline = () => {
-        const username = effectiveUser?.username || 'User';
         switch (filter) {
-            case 'all': return `All of ${username}'s books`;
-            case 'current': return `${username} is currently reading...`;
-            case 'completed': return `${username}'s completed books`;
-            case 'desired': return `${username} wants to read`;
+            case 'current': return "Books currently being read";
+            case 'completed': return "Books finished";
+            case 'desired': return "Books to read";
+            default: return "All books in library";
+        }
+    };
+
+    const getEmptyStateMessage = () => {
+        const username = effectiveUser?.displayName || "User";
+        switch (filter) {
+            case 'current':
+                return `${username} is not currently reading a book`;
+            case 'completed':
+                return `${username} has not marked any books as completed`;
+            case 'desired':
+                return `${username} has no books on their reading list`;
+            default:
+                return "Your library is empty";
         }
     };
 
@@ -575,6 +640,16 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                 ))}
                             </div>
                         )}
+
+                        <button
+                            onClick={() => setShowManualEntry(true)}
+                            className="absolute top-full mt-2 left-0 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                        >
+                            <div className="bg-gray-100 p-1 rounded-full hover:bg-gray-200">
+                                <Plus size={14} />
+                            </div>
+                            <span>Add book manually</span>
+                        </button>
                     </div>
                 </div>
 
@@ -625,6 +700,16 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                             ))}
                         </div>
                     )}
+
+                    <button
+                        onClick={() => setShowManualEntry(true)}
+                        className="mt-2 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                    >
+                        <div className="bg-gray-100 p-1 rounded-full hover:bg-gray-200">
+                            <Plus size={14} />
+                        </div>
+                        <span>Add book manually</span>
+                    </button>
                 </div>
 
 
@@ -683,7 +768,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     {filteredBooks.length === 0 ? (
                         <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
                             <div className="text-6xl mb-4">📚</div>
-                            <h3 className="text-xl font-semibold text-gray-800 mb-2">Your library is empty</h3>
+                            <h3 className="text-xl font-semibold text-gray-800 mb-2">{getEmptyStateMessage()}</h3>
                             <p className="text-gray-500">Search for books to add them to your collection</p>
                         </div>
                     ) : (
@@ -733,7 +818,94 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 </div>
             </div>
 
-            {/* Toast Render */}
+            {/* Manual Entry Modal */}
+            {showManualEntry && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="font-bold text-lg text-gray-900">Add Book Manually</h3>
+                            <button
+                                onClick={() => setShowManualEntry(false)}
+                                className="text-gray-500 hover:text-gray-800 p-1"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleManualBookSubmit} className="p-4 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={manualBookForm.title}
+                                    onChange={e => setManualBookForm({ ...manualBookForm, title: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                                    placeholder="Book Title"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Author *</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={manualBookForm.author}
+                                    onChange={e => setManualBookForm({ ...manualBookForm, author: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                                    placeholder="Author Name"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                                    <input
+                                        type="number"
+                                        value={manualBookForm.year}
+                                        onChange={e => setManualBookForm({ ...manualBookForm, year: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                                        placeholder="YYYY"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <textarea
+                                    value={manualBookForm.description}
+                                    onChange={e => setManualBookForm({ ...manualBookForm, description: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none h-24 resize-none"
+                                    placeholder="Brief description..."
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Genres (comma separated)</label>
+                                <input
+                                    type="text"
+                                    value={manualBookForm.genre}
+                                    onChange={e => setManualBookForm({ ...manualBookForm, genre: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                                    placeholder="Fiction, Sci-Fi, etc."
+                                />
+                            </div>
+
+                            <div className="pt-2">
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="w-full py-2.5 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                >
+                                    {isSaving ? 'Adding Book...' : 'Add Book'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Toast Notification */}
             <Toast
                 message={toast.message}
                 type={toast.type}
@@ -742,3 +914,4 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         </div>
     );
 }
+
