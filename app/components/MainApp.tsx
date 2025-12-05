@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { searchBooks, BookData, getBookDetails } from "@/lib/openLibrary";
 import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers, deleteUserBook, addCustomBook, searchCustomBooks, getCustomBookDetails, updateCustomBook } from "@/lib/firestoreUtils";
 import { BookStatus, UserBook } from "@/lib/types";
-import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus } from 'lucide-react';
+import { sdk } from "@farcaster/frame-sdk";
+import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share } from 'lucide-react';
 
 // ... (imports remain the same)
 
@@ -50,6 +51,15 @@ interface MainAppProps {
 }
 
 // --- Components ---
+
+const shareToFarcaster = (text: string) => {
+    const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}`;
+    try {
+        sdk.actions.openUrl(url);
+    } catch (e) {
+        window.open(url, '_blank');
+    }
+};
 
 const StatusIcon = ({ status, size = 20, isButton = false, onClick = () => { }, className = "" }: any) => {
     const config = STATUS_CONFIG[status] || STATUS_CONFIG.none;
@@ -122,6 +132,19 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
     };
 
     const coverUrl = getCoverUrl(book);
+
+    const handleShare = () => {
+        const title = book.title || book.bookTitle;
+        let text = `Check out ${title} on Read Goods!`;
+        if (userStatus === 'current') {
+            text = `I just started reading ${title} today!`;
+        } else if (userStatus === 'completed') {
+            text = `I just finished reading ${title}`;
+        } else if (userStatus === 'desired') {
+            text = `I just put ${title} on my reading list. Any wanna do a book club?`;
+        }
+        shareToFarcaster(text);
+    };
 
     return (
         <div className="bg-neutral-900 p-6 rounded-xl shadow-2xl border border-neutral-800 w-full max-w-4xl mx-auto mt-4">
@@ -202,6 +225,14 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                             <span className="font-semibold">Remove</span>
                         </button>
                     )}
+                    <button
+                        onClick={handleShare}
+                        className="flex items-center space-x-2 p-2 rounded-lg bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-all duration-200"
+                        title="Share to Farcaster"
+                    >
+                        <Share size={24} />
+                        <span className="font-semibold">Share</span>
+                    </button>
                 </div>
 
                 <h3 className="text-xl font-semibold text-neutral-300 mb-4 flex items-center">
@@ -762,9 +793,18 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
                 {/* Library */}
                 <div>
-                    <div className="mb-6">
-                        <h2 className="text-2xl font-bold text-white tracking-tight">LIBRARY</h2>
-                        <p className="text-neutral-400 mt-1">{getLibraryTagline()}</p>
+                    <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                        <div>
+                            <h2 className="text-2xl font-bold text-white tracking-tight">LIBRARY</h2>
+                            <p className="text-neutral-400 mt-1">{getLibraryTagline()}</p>
+                        </div>
+                        <button
+                            onClick={() => shareToFarcaster("i just read X pages of my book today and it has me feeling....")}
+                            className="flex items-center justify-center space-x-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition-colors text-sm font-medium w-full md:w-auto"
+                        >
+                            <Share size={16} />
+                            <span>Tell others what you read today</span>
+                        </button>
                     </div>
 
                     {filteredBooks.length === 0 ? (
