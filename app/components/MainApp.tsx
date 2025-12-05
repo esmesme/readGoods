@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { searchBooks, BookData, getBookDetails } from "@/lib/openLibrary";
-import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers } from "@/lib/firestoreUtils";
+import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers, deleteUserBook } from "@/lib/firestoreUtils";
 import { BookStatus, UserBook } from "@/lib/types";
 import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X } from 'lucide-react';
 
@@ -436,7 +436,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
             if (newStatus === 'none') {
                 // Remove from library
-                await updateBookStatus(effectiveUser.fid, bookKey, 'desired');
+                await deleteUserBook(effectiveUser.fid, bookKey);
                 showToast("Book removed from library", "default");
                 setSelectedBook(null); // Redirect to library
             } else {

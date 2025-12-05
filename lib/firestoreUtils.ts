@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, doc, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { BookData } from './openLibrary';
 import { BookStatus, UserBook } from './types';
 
@@ -91,5 +91,16 @@ export async function checkBookExists(key: string): Promise<boolean> {
     } catch (error) {
         console.error('Error checking book existence:', error);
         return false;
+    }
+}
+
+export async function deleteUserBook(userFid: number, bookKey: string) {
+    try {
+        const docId = bookKey.replace('/works/', '');
+        const userBookRef = doc(db, USER_BOOKS_COLLECTION, `${userFid}_${docId}`);
+        await deleteDoc(userBookRef);
+    } catch (error) {
+        console.error('Error deleting user book:', error);
+        throw error;
     }
 }
