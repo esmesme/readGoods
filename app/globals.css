@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+    @apply bg-[#0a0a0a] text-white;
+}
+
 @layer base {
     body {
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;

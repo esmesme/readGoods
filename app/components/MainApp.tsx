@@ -16,13 +16,13 @@ const Toast = ({ message, type, onClose }: any) => {
 
     switch (type) {
         case 'success':
-            colorClasses = 'bg-green-600 text-white';
+            colorClasses = 'bg-green-900/90 text-white border border-green-800';
             break;
         case 'error':
-            colorClasses = 'bg-red-600 text-white';
+            colorClasses = 'bg-red-900/90 text-white border border-red-800';
             break;
         default:
-            colorClasses = 'bg-gray-800 text-white';
+            colorClasses = 'bg-neutral-800 text-white border border-neutral-700';
     }
 
     return (
@@ -39,10 +39,10 @@ const Toast = ({ message, type, onClose }: any) => {
 
 // --- Icon Mapping and Configuration ---
 const STATUS_CONFIG: Record<string, { icon: any; color: string; bgColor: string; label: string }> = {
-    completed: { icon: BookCheck, color: 'text-green-500', bgColor: 'bg-green-100', label: 'Completed' },
-    current: { icon: Clock, color: 'text-yellow-600', bgColor: 'bg-yellow-100', label: 'Current' },
-    desired: { icon: BookmarkPlus, color: 'text-blue-500', bgColor: 'bg-blue-100', label: 'Desired' },
-    none: { icon: null, color: 'text-gray-400', bgColor: 'bg-gray-200', label: 'Add to Library' },
+    completed: { icon: BookCheck, color: 'text-green-400', bgColor: 'bg-green-900/30', label: 'Completed' },
+    current: { icon: Clock, color: 'text-yellow-400', bgColor: 'bg-yellow-900/30', label: 'Current' },
+    desired: { icon: BookmarkPlus, color: 'text-blue-400', bgColor: 'bg-blue-900/30', label: 'Desired' },
+    none: { icon: null, color: 'text-neutral-400', bgColor: 'bg-neutral-800', label: 'Add to Library' },
 };
 
 interface MainAppProps {
@@ -124,10 +124,10 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
     const coverUrl = getCoverUrl(book);
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-2xl transition-all duration-300 hover:shadow-3xl w-full max-w-4xl mx-auto mt-4">
+        <div className="bg-neutral-900 p-6 rounded-xl shadow-2xl border border-neutral-800 w-full max-w-4xl mx-auto mt-4">
             <button
                 onClick={onBack}
-                className="mb-6 text-gray-600 hover:text-black flex items-center gap-2"
+                className="mb-6 text-neutral-400 hover:text-white flex items-center gap-2 transition-colors"
             >
                 ← Back
             </button>
@@ -139,11 +139,11 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                         <img
                             src={coverUrl}
                             alt={`${book.title || book.bookTitle} cover`}
-                            className="w-32 h-48 md:w-48 md:h-72 object-cover rounded-lg shadow-lg"
+                            className="w-32 h-48 md:w-48 md:h-72 object-cover rounded-lg shadow-lg border border-neutral-800"
                         />
                     ) : (
-                        <div className="w-32 h-48 md:w-48 md:h-72 bg-gray-200 rounded-lg shadow-lg flex items-center justify-center">
-                            <span className="text-4xl">📖</span>
+                        <div className="w-32 h-48 md:w-48 md:h-72 bg-neutral-800 rounded-lg shadow-lg flex items-center justify-center border border-neutral-700">
+                            <img src="/book-icon.png" alt="No Cover" className="w-16 h-16 object-contain opacity-50" />
                         </div>
                     )}
                     <FriendsStatusOverlay friends={friendData} />
@@ -151,17 +151,17 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
 
                 {/* Book Details */}
                 <div className="flex-grow">
-                    <h2 className="text-2xl md:text-3xl font-bold text-gray-800 leading-tight mb-2">
+                    <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight mb-2">
                         {book.title || book.bookTitle}
                     </h2>
                     {(book.author_name || book.bookAuthors) && (
-                        <p className="text-lg text-gray-800 font-medium mb-4">
+                        <p className="text-lg text-neutral-400 font-medium mb-4">
                             by {Array.isArray(book.author_name) ? book.author_name.join(", ") : book.bookAuthors}
                         </p>
                     )}
 
                     {book.description && (
-                        <p className="text-gray-600 mb-6 line-clamp-6 text-sm leading-relaxed">
+                        <p className="text-neutral-300 mb-6 line-clamp-6 text-sm leading-relaxed">
                             {typeof book.description === 'string' ? book.description : book.description.value}
                         </p>
                     )}
@@ -170,7 +170,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                     {userStatus && userStatus !== 'none' && (
                         <div className={`flex items-center space-x-2 p-3 rounded-xl border-l-4 ${userStatusConfig.color} ${userStatusConfig.bgColor} border-${userStatusConfig.color.split('-')[1]}-500 shadow-sm mb-6`}>
                             <CircleUserRound size={24} className={userStatusConfig.color} />
-                            <span className="font-semibold text-gray-700">
+                            <span className="font-semibold text-neutral-200">
                                 Your Status: {userStatusConfig.label}
                             </span>
                         </div>
@@ -179,7 +179,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
             </div>
 
             {/* Footer and Friends Section */}
-            <div className="mt-8 pt-6 border-t border-gray-100">
+            <div className="mt-8 pt-6 border-t border-neutral-800">
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-4 mb-6 justify-center md:justify-start">
                     {Object.keys(STATUS_CONFIG).filter(s => s !== 'none').map((status) => (
@@ -189,13 +189,13 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                             size={24}
                             isButton={true}
                             onClick={() => onStatusChange(status)}
-                            className={userStatus === status ? 'ring-4 ring-gray-400' : ''}
+                            className={userStatus === status ? 'ring-2 ring-neutral-500' : ''}
                         />
                     ))}
                     {userStatus && userStatus !== 'none' && (
                         <button
                             onClick={() => onStatusChange('none')}
-                            className="flex items-center space-x-2 p-2 rounded-lg bg-red-100 text-red-500 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                            className="flex items-center space-x-2 p-2 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 transition-all duration-200"
                             title="Remove from your library"
                         >
                             <Trash2 size={24} />
@@ -204,8 +204,8 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                     )}
                 </div>
 
-                <h3 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-                    <Users size={20} className="mr-2 text-gray-700" />
+                <h3 className="text-xl font-semibold text-neutral-300 mb-4 flex items-center">
+                    <Users size={20} className="mr-2 text-neutral-400" />
                     Friends' Library Status ({friendsWithBook} on Farcaster)
                 </h3>
 
@@ -213,13 +213,13 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                 <div className="flex flex-wrap gap-3">
                     {friendsWithBook > 0 ? (
                         friendData.filter((f: any) => f.status && f.status !== 'none').slice(0, 5).map((friend: any) => (
-                            <span key={friend.userFid} className="inline-flex items-center text-sm font-medium bg-gray-50 text-gray-700 px-3 py-1.5 rounded-full border border-gray-200">
+                            <span key={friend.userFid} className="inline-flex items-center text-sm font-medium bg-neutral-800 text-neutral-300 px-3 py-1.5 rounded-full border border-neutral-700">
                                 <StatusIcon status={friend.status} size={14} />
                                 <span className="ml-1.5">FID: {friend.userFid}</span>
                             </span>
                         ))
                     ) : (
-                        <p className="text-gray-500 italic">No friends have this book in their library yet.</p>
+                        <p className="text-neutral-500 italic">No friends have this book in their library yet.</p>
                     )}
                 </div>
             </div>
@@ -232,7 +232,7 @@ const SearchResult = ({ book, onStatusChange, onClick }: any) => {
 
     return (
         <div
-            className="flex items-center justify-between p-4 bg-white rounded-xl shadow-md border border-gray-200 w-full max-w-4xl mx-auto mb-4 cursor-pointer hover:shadow-lg transition-shadow"
+            className="flex items-center justify-between p-4 bg-neutral-900 rounded-xl shadow-md border border-neutral-800 w-full max-w-4xl mx-auto mb-4 cursor-pointer hover:shadow-lg transition-shadow"
             onClick={onClick}
         >
             <div className="flex items-center space-x-4 flex-1">
@@ -244,15 +244,15 @@ const SearchResult = ({ book, onStatusChange, onClick }: any) => {
                             className="w-12 h-18 object-cover rounded-md"
                         />
                     ) : (
-                        <div className="w-12 h-18 bg-gray-200 rounded-md flex items-center justify-center">
-                            <span className="text-xl">📖</span>
+                        <div className="w-12 h-18 bg-neutral-800 rounded-md flex items-center justify-center">
+                            <img src="/book-icon.png" alt="No Cover" className="w-8 h-8 object-contain opacity-50" />
                         </div>
                     )}
                 </div>
                 <div>
-                    <p className="font-semibold text-gray-800 line-clamp-1">{book.title}</p>
+                    <p className="font-semibold text-white line-clamp-1">{book.title}</p>
                     {book.author_name && (
-                        <p className="text-sm text-gray-500 line-clamp-1">{book.author_name[0]}</p>
+                        <p className="text-sm text-neutral-400 line-clamp-1">{book.author_name[0]}</p>
                     )}
                 </div>
             </div>
@@ -276,6 +276,8 @@ const SearchResult = ({ book, onStatusChange, onClick }: any) => {
         </div>
     );
 };
+
+
 
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, doc, setDoc } from "firebase/firestore";
@@ -552,7 +554,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
     if (selectedBook) {
         return (
-            <div className="min-h-screen bg-gray-50 p-4">
+            <div className="min-h-screen bg-gray-900 p-4">
                 <BookCard
                     book={{ ...selectedBook, ...bookDetails }}
                     userStatus={selectedBook.userStatus}
@@ -569,13 +571,13 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans">
+        <div className="min-h-screen bg-[#0a0a0a] font-sans">
             {/* Top Nav */}
-            <div className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30">
+            <div className="bg-[#0a0a0a] border-b border-neutral-800 shadow-sm sticky top-0 z-30">
                 <div className="flex items-center p-4 gap-4 max-w-6xl mx-auto">
                     <button
                         onClick={() => setMenuOpen(!menuOpen)}
-                        className="text-gray-700 hover:bg-gray-100 p-2 rounded-lg transition-colors"
+                        className="text-white hover:bg-neutral-800 p-2 rounded-lg transition-colors"
                     >
                         <div className="space-y-1.5">
                             <span className="block w-6 h-0.5 bg-current"></span>
@@ -585,8 +587,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     </button>
 
                     <div className="flex-1 flex items-center justify-start gap-2">
-                        <span className="font-extrabold text-xl tracking-tight text-gray-900">READ GOOD</span>
-                        <span className="text-2xl">📚</span>
+                        <span className="font-extrabold text-xl tracking-tight text-white">READ GOODS</span>
+                        <img src="/book-icon.png" alt="Book Icon" className="w-16 h-16 object-contain" />
                     </div>
 
                     {/* Desktop Search with Dropdown */}
@@ -598,11 +600,11 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
                             placeholder="Search books..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-500 rounded-lg focus:ring-2 focus:ring-neutral-600 focus:border-transparent outline-none transition-all"
                         />
                         {isSearching && (
                             <div className="absolute right-3 top-2.5">
-                                <div className="animate-spin h-5 w-5 border-2 border-gray-300 border-t-gray-600 rounded-full"></div>
+                                <div className="animate-spin h-5 w-5 border-2 border-neutral-600 border-t-neutral-300 rounded-full"></div>
                             </div>
                         )}
 
@@ -610,13 +612,13 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         {showDropdown && searchResults.length > 0 && (
                             <div
                                 ref={dropdownRef}
-                                className="absolute top-full mt-2 w-96 bg-white border border-gray-200 rounded-lg shadow-2xl max-h-96 overflow-y-auto z-50"
+                                className="absolute top-full mt-2 w-96 bg-neutral-900 border border-neutral-800 rounded-lg shadow-2xl max-h-96 overflow-y-auto z-50"
                             >
                                 {searchResults.map((book) => (
                                     <button
                                         key={book.key}
                                         onClick={() => handleSearchResultClick(book)}
-                                        className="w-full p-3 hover:bg-gray-50 flex gap-3 items-start text-left border-b border-gray-100 last:border-b-0 transition-colors"
+                                        className="w-full p-3 hover:bg-neutral-800 flex gap-3 items-start text-left border-b border-neutral-800 last:border-b-0 transition-colors"
                                     >
                                         {book.cover_i && (
                                             <img
@@ -626,14 +628,14 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                             />
                                         )}
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-semibold text-gray-900 truncate">{book.title}</div>
+                                            <div className="font-semibold text-white truncate">{book.title}</div>
                                             {book.author_name && (
-                                                <div className="text-sm text-gray-600 truncate">
+                                                <div className="text-sm text-neutral-400 truncate">
                                                     {book.author_name.join(", ")}
                                                 </div>
                                             )}
                                             {book.first_publish_year && (
-                                                <div className="text-xs text-gray-500">{book.first_publish_year}</div>
+                                                <div className="text-xs text-neutral-500">{book.first_publish_year}</div>
                                             )}
                                         </div>
                                     </button>
@@ -643,9 +645,9 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
                         <button
                             onClick={() => setShowManualEntry(true)}
-                            className="absolute top-full mt-2 left-0 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                            className="absolute top-full mt-2 left-0 flex items-center gap-1 text-xs text-neutral-400 hover:text-white transition-colors"
                         >
-                            <div className="bg-gray-100 p-1 rounded-full hover:bg-gray-200">
+                            <div className="bg-neutral-900 p-1 rounded-full hover:bg-neutral-800 border border-neutral-800">
                                 <Plus size={14} />
                             </div>
                             <span>Add book manually</span>
@@ -661,22 +663,22 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
                         placeholder="Search books..."
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all"
+                        className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-500 rounded-lg focus:ring-2 focus:ring-neutral-600 focus:border-transparent outline-none transition-all"
                     />
                     {isSearching && (
                         <div className="absolute right-7 top-6">
-                            <div className="animate-spin h-5 w-5 border-2 border-gray-300 border-t-gray-600 rounded-full"></div>
+                            <div className="animate-spin h-5 w-5 border-2 border-neutral-600 border-t-neutral-300 rounded-full"></div>
                         </div>
                     )}
 
                     {/* Mobile Dropdown Results */}
                     {showDropdown && searchResults.length > 0 && (
-                        <div className="absolute top-full left-4 right-4 mt-2 bg-white border border-gray-200 rounded-lg shadow-2xl max-h-96 overflow-y-auto z-50">
+                        <div className="absolute top-full left-4 right-4 mt-2 bg-neutral-900 border border-neutral-800 rounded-lg shadow-2xl max-h-96 overflow-y-auto z-50">
                             {searchResults.map((book) => (
                                 <button
                                     key={book.key}
                                     onClick={() => handleSearchResultClick(book)}
-                                    className="w-full p-3 hover:bg-gray-50 flex gap-3 items-start text-left border-b border-gray-100 last:border-b-0 transition-colors"
+                                    className="w-full p-3 hover:bg-neutral-800 flex gap-3 items-start text-left border-b border-neutral-800 last:border-b-0 transition-colors"
                                 >
                                     {book.cover_i && (
                                         <img
@@ -686,14 +688,14 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                         />
                                     )}
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-semibold text-gray-900 truncate">{book.title}</div>
+                                        <div className="font-semibold text-white truncate">{book.title}</div>
                                         {book.author_name && (
-                                            <div className="text-sm text-gray-600 truncate">
+                                            <div className="text-sm text-neutral-400 truncate">
                                                 {book.author_name.join(", ")}
                                             </div>
                                         )}
                                         {book.first_publish_year && (
-                                            <div className="text-xs text-gray-500">{book.first_publish_year}</div>
+                                            <div className="text-xs text-neutral-500">{book.first_publish_year}</div>
                                         )}
                                     </div>
                                 </button>
@@ -703,9 +705,9 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
                     <button
                         onClick={() => setShowManualEntry(true)}
-                        className="mt-2 flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+                        className="mt-2 flex items-center gap-1 text-xs text-neutral-400 hover:text-white transition-colors"
                     >
-                        <div className="bg-gray-100 p-1 rounded-full hover:bg-gray-200">
+                        <div className="bg-neutral-900 p-1 rounded-full hover:bg-neutral-800 border border-neutral-800">
                             <Plus size={14} />
                         </div>
                         <span>Add book manually</span>
@@ -721,15 +723,15 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 />
                 {/* Menu */}
                 <div
-                    className="fixed top-0 left-0 w-48 bg-white h-screen z-50 shadow-2xl transition-transform duration-300 ease-in-out"
+                    className="fixed top-0 left-0 w-48 bg-[#0a0a0a] h-screen z-50 shadow-2xl transition-transform duration-300 ease-in-out border-r border-neutral-800"
                     style={{ transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)' }}
                 >
                     <div className="p-4">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="font-bold text-lg text-gray-800">Menu</h2>
+                            <h2 className="font-bold text-lg text-white">Menu</h2>
                             <button
                                 onClick={() => setMenuOpen(false)}
-                                className="text-gray-500 hover:text-gray-800 p-1"
+                                className="text-neutral-400 hover:text-white p-1"
                             >
                                 ✕
                             </button>
@@ -743,8 +745,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                         setMenuOpen(false);
                                     }}
                                     className={`block w-full text-left px-3 py-2 rounded-md transition-colors text-sm ${filter === f
-                                        ? 'bg-gray-100 text-gray-900 font-semibold'
-                                        : 'text-gray-600 hover:bg-gray-50'
+                                        ? 'bg-neutral-800 text-white font-semibold'
+                                        : 'text-neutral-400 hover:bg-neutral-800'
                                         }`}
                                 >
                                     {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -761,15 +763,17 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 {/* Library */}
                 <div>
                     <div className="mb-6">
-                        <h2 className="text-2xl font-bold text-gray-800 tracking-tight">LIBRARY</h2>
-                        <p className="text-gray-500 mt-1">{getLibraryTagline()}</p>
+                        <h2 className="text-2xl font-bold text-white tracking-tight">LIBRARY</h2>
+                        <p className="text-neutral-400 mt-1">{getLibraryTagline()}</p>
                     </div>
 
                     {filteredBooks.length === 0 ? (
-                        <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
-                            <div className="text-6xl mb-4">📚</div>
-                            <h3 className="text-xl font-semibold text-gray-800 mb-2">{getEmptyStateMessage()}</h3>
-                            <p className="text-gray-500">Search for books to add them to your collection</p>
+                        <div className="text-center py-20 bg-neutral-900 rounded-xl border border-dashed border-neutral-800">
+                            <div className="flex justify-center mb-4">
+                                <img src="/book-icon.png" alt="Empty Library" className="w-32 h-32 object-contain opacity-80" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-white mb-2">{getEmptyStateMessage()}</h3>
+                            <p className="text-neutral-400">Search for books to add them to your collection</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -782,19 +786,18 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                     <div className="relative aspect-[2/3] mb-3 overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
                                         {book.coverId ? (
                                             <img
-                                                src={`https://covers.openlibrary.org/b/id/${book.coverId}-M.jpg`}
+                                                src={`https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`}
                                                 alt={book.bookTitle}
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                                                <span className="text-4xl">📖</span>
+                                            <div className="w-full h-full bg-neutral-900 flex items-center justify-center text-neutral-600">
+                                                <img src="/book-icon.png" alt="No Cover" className="w-12 h-12 object-contain opacity-50" />
                                             </div>
                                         )}
-
                                         {/* Status Badge */}
                                         <div className="absolute top-2 right-2">
-                                            <div className={`p-1.5 rounded-full bg-white/90 backdrop-blur-sm shadow-sm ${STATUS_CONFIG[book.status]?.color}`}>
+                                            <div className={`p-1.5 rounded-full bg-neutral-900/90 backdrop-blur-sm shadow-sm ${STATUS_CONFIG[book.status]?.color}`}>
                                                 {(() => {
                                                     const Icon = STATUS_CONFIG[book.status]?.icon;
                                                     return Icon ? <Icon size={14} /> : null;
@@ -802,12 +805,9 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                             </div>
                                         </div>
                                     </div>
-
-                                    <h3 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-2 mb-1 group-hover:text-gray-900 transition-colors">
-                                        {book.bookTitle}
-                                    </h3>
+                                    <h3 className="font-bold text-white leading-tight mb-1 line-clamp-2 group-hover:text-neutral-300 transition-colors">{book.bookTitle}</h3>
                                     {book.bookAuthors && (
-                                        <p className="text-xs text-gray-500 line-clamp-1">
+                                        <p className="text-sm text-neutral-400 line-clamp-1">
                                             {Array.isArray(book.bookAuthors) ? book.bookAuthors[0] : book.bookAuthors}
                                         </p>
                                     )}
@@ -820,13 +820,13 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
             {/* Manual Entry Modal */}
             {showManualEntry && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                        <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-                            <h3 className="font-bold text-lg text-gray-900">Add Book Manually</h3>
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                    <div className="bg-neutral-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-neutral-800">
+                        <div className="p-4 border-b border-neutral-800 flex justify-between items-center">
+                            <h3 className="font-bold text-lg text-white">Add Book Manually</h3>
                             <button
                                 onClick={() => setShowManualEntry(false)}
-                                className="text-gray-500 hover:text-gray-800 p-1"
+                                className="text-neutral-400 hover:text-white p-1"
                             >
                                 <X size={20} />
                             </button>
@@ -834,59 +834,59 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
                         <form onSubmit={handleManualBookSubmit} className="p-4 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                                <label className="block text-sm font-medium text-neutral-300 mb-1">Title *</label>
                                 <input
                                     type="text"
                                     required
                                     value={manualBookForm.title}
                                     onChange={e => setManualBookForm({ ...manualBookForm, title: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 text-white rounded-lg focus:ring-2 focus:ring-neutral-500 outline-none"
                                     placeholder="Book Title"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Author *</label>
+                                <label className="block text-sm font-medium text-neutral-300 mb-1">Author *</label>
                                 <input
                                     type="text"
                                     required
                                     value={manualBookForm.author}
                                     onChange={e => setManualBookForm({ ...manualBookForm, author: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 text-white rounded-lg focus:ring-2 focus:ring-neutral-500 outline-none"
                                     placeholder="Author Name"
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                                    <label className="block text-sm font-medium text-neutral-300 mb-1">Year</label>
                                     <input
                                         type="number"
                                         value={manualBookForm.year}
                                         onChange={e => setManualBookForm({ ...manualBookForm, year: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                                        className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 text-white rounded-lg focus:ring-2 focus:ring-neutral-500 outline-none"
                                         placeholder="YYYY"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <label className="block text-sm font-medium text-neutral-300 mb-1">Description</label>
                                 <textarea
                                     value={manualBookForm.description}
                                     onChange={e => setManualBookForm({ ...manualBookForm, description: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none h-24 resize-none"
+                                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 text-white rounded-lg focus:ring-2 focus:ring-neutral-500 outline-none h-24 resize-none"
                                     placeholder="Brief description..."
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Genres (comma separated)</label>
+                                <label className="block text-sm font-medium text-neutral-300 mb-1">Genres (comma separated)</label>
                                 <input
                                     type="text"
                                     value={manualBookForm.genre}
                                     onChange={e => setManualBookForm({ ...manualBookForm, genre: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 outline-none"
+                                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 text-white rounded-lg focus:ring-2 focus:ring-neutral-500 outline-none"
                                     placeholder="Fiction, Sci-Fi, etc."
                                 />
                             </div>
@@ -895,7 +895,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                 <button
                                     type="submit"
                                     disabled={isSaving}
-                                    className="w-full py-2.5 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                                    className="w-full py-2.5 bg-white text-neutral-900 rounded-lg font-medium hover:bg-neutral-200 transition-colors disabled:opacity-50"
                                 >
                                     {isSaving ? 'Adding Book...' : 'Add Book'}
                                 </button>
