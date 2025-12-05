@@ -5,6 +5,7 @@ import { BookStatus, UserBook } from './types';
 
 const BOOKS_COLLECTION = 'books';
 const USER_BOOKS_COLLECTION = 'userBooks';
+const USERS_COLLECTION = 'users';
 
 export async function saveBookToFirestore(book: BookData, userFid: number, status: BookStatus) {
     try {
@@ -36,6 +37,19 @@ export async function saveBookToFirestore(book: BookData, userFid: number, statu
     }
 }
 
+export async function saveUserProfile(user: { fid: number; username?: string; displayName?: string; pfpUrl?: string }) {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, user.fid.toString());
+        await setDoc(userRef, {
+            ...user,
+            updatedAt: new Date(),
+        }, { merge: true });
+    } catch (error) {
+        console.error('Error saving user profile:', error);
+        // Don't throw, just log - this shouldn't block app usage
+    }
+}
+
 export async function getUserBooks(userFid: number): Promise<UserBook[]> {
     try {
         const q = query(
@@ -64,18 +78,39 @@ export async function updateBookStatus(userFid: number, bookKey: string, status:
     }
 }
 
-export async function getBookUsers(bookKey: string): Promise<{ userFid: number; status: BookStatus }[]> {
+export async function getBookUsers(bookKey: string): Promise<{ userFid: number; status: BookStatus; username?: string; displayName?: string; pfpUrl?: string }[]> {
     try {
-        const docId = bookKey.replace('/works/', '');
         const q = query(
             collection(db, USER_BOOKS_COLLECTION),
             where('bookKey', '==', bookKey)
         );
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => {
+
+        const userBooks = querySnapshot.docs.map(doc => {
             const data = doc.data();
             return { userFid: data.userFid, status: data.status };
         });
+
+        // Fetch user profiles
+        const usersWithProfiles = await Promise.all(userBooks.map(async (ub) => {
+            try {
+                const userDoc = await getDoc(doc(db, USERS_COLLECTION, ub.userFid.toString()));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    return {
+                        ...ub,
+                        username: userData.username,
+                        displayName: userData.displayName,
+                        pfpUrl: userData.pfpUrl
+                    };
+                }
+            } catch (e) {
+                console.error(`Error fetching profile for ${ub.userFid}:`, e);
+            }
+            return ub;
+        }));
+
+        return usersWithProfiles;
     } catch (error) {
         console.error('Error getting book users:', error);
         return [];

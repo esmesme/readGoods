@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { searchBooks, BookData, getBookDetails } from "@/lib/openLibrary";
-import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers, deleteUserBook, addCustomBook, searchCustomBooks, getCustomBookDetails, updateCustomBook } from "@/lib/firestoreUtils";
+import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers, deleteUserBook, addCustomBook, searchCustomBooks, getCustomBookDetails, updateCustomBook, saveUserProfile } from "@/lib/firestoreUtils";
 import { BookStatus, UserBook } from "@/lib/types";
 import { sdk } from "@farcaster/frame-sdk";
 import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share } from 'lucide-react';
@@ -246,10 +246,27 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                 <div className="flex flex-wrap gap-3">
                     {friendsWithBook > 0 ? (
                         friendData.filter((f: any) => f.status && f.status !== 'none').slice(0, 5).map((friend: any) => (
-                            <span key={friend.userFid} className="inline-flex items-center text-sm font-medium bg-neutral-800 text-neutral-300 px-3 py-1.5 rounded-full border border-neutral-700">
-                                <StatusIcon status={friend.status} size={14} />
-                                <span className="ml-1.5">FID: {friend.userFid}</span>
-                            </span>
+                            <div key={friend.userFid} className="flex items-center space-x-2 bg-neutral-800 px-3 py-1.5 rounded-full border border-neutral-700">
+                                <div className="relative">
+                                    {friend.pfpUrl ? (
+                                        <img
+                                            src={friend.pfpUrl}
+                                            alt={friend.displayName || friend.username || 'User'}
+                                            className="w-6 h-6 rounded-full object-cover border border-neutral-600"
+                                        />
+                                    ) : (
+                                        <div className="w-6 h-6 rounded-full bg-neutral-700 flex items-center justify-center border border-neutral-600">
+                                            <CircleUserRound size={14} className="text-neutral-400" />
+                                        </div>
+                                    )}
+                                    <div className="absolute -bottom-1 -right-1 bg-neutral-900 rounded-full p-0.5">
+                                        <StatusIcon status={friend.status} size={10} />
+                                    </div>
+                                </div>
+                                <span className="text-sm font-medium text-neutral-300">
+                                    {friend.displayName || friend.username || `FID: ${friend.userFid}`}
+                                </span>
+                            </div>
                         ))
                     ) : (
                         <p className="text-neutral-500 italic">No friends have this book in their library yet.</p>
@@ -406,6 +423,14 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     // Real-time listener for user's books
     useEffect(() => {
         if (!effectiveUser?.fid) return;
+
+        // Save user profile
+        saveUserProfile({
+            fid: effectiveUser.fid,
+            username: effectiveUser.username,
+            displayName: effectiveUser.displayName,
+            pfpUrl: effectiveUser.pfpUrl
+        });
 
         const q = query(
             collection(db, 'userBooks'),
