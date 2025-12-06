@@ -224,6 +224,7 @@ export interface CustomBook {
     first_publish_year?: number;
     description?: string;
     subjects?: string[];
+    coverUrl?: string;
     createdBy: number;
     createdAt: any;
     updatedAt: any;
@@ -267,6 +268,7 @@ export async function searchCustomBooks(queryText: string): Promise<BookData[]> 
                     author_name: data.author_name,
                     first_publish_year: data.first_publish_year,
                     cover_i: undefined, // Custom books won't have OL covers by default
+                    coverUrl: data.coverUrl, // Custom cover URL if uploaded
                 });
             }
         });

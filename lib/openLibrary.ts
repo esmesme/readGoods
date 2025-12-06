@@ -5,6 +5,7 @@ export interface BookData {
     cover_i?: number;
     first_publish_year?: number;
     key: string;
+    coverUrl?: string; // For custom uploaded book covers
 }
 
 export interface BookDetails {
