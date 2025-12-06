@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { searchBooks, BookData, getBookDetails } from "@/lib/openLibrary";
 import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers, deleteUserBook, addCustomBook, searchCustomBooks, getCustomBookDetails, updateCustomBook, saveUserProfile } from "@/lib/firestoreUtils";
-import { uploadBookCover } from "@/lib/storageUtils";
+
 import { BookStatus, UserBook } from "@/lib/types";
 import { sdk } from "@farcaster/frame-sdk";
 import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen } from 'lucide-react';
@@ -713,8 +713,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         description: '',
         genre: ''
     });
-    const [coverImage, setCoverImage] = useState<File | null>(null);
-    const [coverPreview, setCoverPreview] = useState<string | null>(null);
+
     const [toast, setToast] = useState({ message: '', type: '' });
 
     // Reading Log State
@@ -855,19 +854,6 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 createdBy: effectiveUser.fid
             });
 
-            // Upload cover image if provided
-            let coverUrl: string | undefined;
-            if (coverImage) {
-                try {
-                    coverUrl = await uploadBookCover(coverImage, newBookKey);
-                    // Update the custom book with the cover URL
-                    await updateCustomBook(newBookKey, { coverUrl });
-                } catch (uploadError) {
-                    console.error("Error uploading cover:", uploadError);
-                    showToast("Book added but cover upload failed", "default");
-                }
-            }
-
             // Add the book to the user's library with 'desired' status by default
             await saveBookToFirestore(
                 {
@@ -875,7 +861,6 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     title: manualBookForm.title,
                     author_name: [manualBookForm.author],
                     first_publish_year: manualBookForm.year ? parseInt(manualBookForm.year) : undefined,
-                    coverUrl,
                 },
                 effectiveUser.fid,
                 'desired' // Default status for manually added books
@@ -884,8 +869,6 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             showToast("Book added to your library!", "success");
             setShowManualEntry(false);
             setManualBookForm({ title: '', author: '', year: '', description: '', genre: '' });
-            setCoverImage(null);
-            setCoverPreview(null);
 
         } catch (error) {
             console.error("Error adding manual book:", error);
@@ -895,22 +878,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         }
     };
 
-    const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > 5 * 1024 * 1024) { // 5MB limit before compression
-                showToast("Image too large. Please select an image under 5MB", "error");
-                return;
-            }
-            setCoverImage(file);
-            // Create preview
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setCoverPreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+
 
     const handleAddBook = async (book: BookData, status: BookStatus) => {
         if (!effectiveUser?.fid) return;
@@ -1479,50 +1447,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                 />
                             </div>
 
-                            {/* Cover Image Upload */}
-                            <div>
-                                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                                    Cover Image (Optional)
-                                </label>
-                                {coverPreview ? (
-                                    <div className="relative">
-                                        <img
-                                            src={coverPreview}
-                                            alt="Cover preview"
-                                            className="w-32 h-48 object-cover rounded-lg border border-neutral-700"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setCoverImage(null);
-                                                setCoverPreview(null);
-                                            }}
-                                            className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-500 text-white rounded-full p-1 transition-colors"
-                                        >
-                                            <X size={16} />
-                                        </button>
-                                        <p className="text-xs text-neutral-500 mt-2">Image will be compressed to under 200KB</p>
-                                    </div>
-                                ) : (
-                                    <div>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleCoverImageChange}
-                                            className="hidden"
-                                            id="cover-upload"
-                                        />
-                                        <label
-                                            htmlFor="cover-upload"
-                                            className="flex items-center justify-center w-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-lg p-4 cursor-pointer transition-colors"
-                                        >
-                                            <Plus size={20} className="mr-2 text-neutral-400" />
-                                            <span className="text-sm text-neutral-300">Upload Cover Image</span>
-                                        </label>
-                                        <p className="text-xs text-neutral-500 mt-1">Max 5MB (will be compressed to under 200KB)</p>
-                                    </div>
-                                )}
-                            </div>
+
 
                             <button
                                 type="submit"
