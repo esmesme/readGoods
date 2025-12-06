@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { searchBooks, BookData, getBookDetails } from "@/lib/openLibrary";
 import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers, deleteUserBook, addCustomBook, searchCustomBooks, getCustomBookDetails, updateCustomBook, saveUserProfile } from "@/lib/firestoreUtils";
-import { uploadBookCover, compressImage, uploadCompressedCover } from "@/lib/storageUtils";
+import { uploadBookCover } from "@/lib/storageUtils";
 import { BookStatus, UserBook } from "@/lib/types";
 import { sdk } from "@farcaster/frame-sdk";
 import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen } from 'lucide-react';
@@ -425,8 +425,8 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                             className="w-32 h-48 md:w-48 md:h-72 object-cover rounded-lg shadow-lg border border-neutral-800"
                         />
                     ) : (
-                        <div className="w-32 h-48 md:w-48 md:h-72 bg-neutral-800 rounded-lg shadow-lg flex items-center justify-center border border-neutral-700 p-4">
-                            <img src="/readgoods-logo.png" alt="No Cover" className="w-full h-auto object-contain opacity-50" />
+                        <div className="w-32 h-48 md:w-48 md:h-72 bg-neutral-800 rounded-lg shadow-lg flex items-center justify-center border border-neutral-700">
+                            <img src="/book-icon.png" alt="No Cover" className="w-16 h-16 object-contain opacity-50" />
                         </div>
                     )}
                     <FriendsStatusOverlay friends={friendData} />
@@ -629,7 +629,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
 };
 
 const SearchResult = ({ book, onStatusChange, onClick }: any) => {
-    const coverUrl = book.coverUrl || (book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-S.jpg` : null);
+    const coverUrl = book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-S.jpg` : null;
 
     return (
         <div
@@ -645,8 +645,8 @@ const SearchResult = ({ book, onStatusChange, onClick }: any) => {
                             className="w-12 h-18 object-cover rounded-md"
                         />
                     ) : (
-                        <div className="w-12 h-18 bg-neutral-800 rounded-md flex items-center justify-center p-2">
-                            <img src="/readgoods-logo.png" alt="No Cover" className="w-full h-auto object-contain opacity-50" />
+                        <div className="w-12 h-18 bg-neutral-800 rounded-md flex items-center justify-center">
+                            <img src="/book-icon.png" alt="No Cover" className="w-8 h-8 object-contain opacity-50" />
                         </div>
                     )}
                 </div>
@@ -713,9 +713,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         description: '',
         genre: ''
     });
-    const [coverImage, setCoverImage] = useState<Blob | null>(null);
+    const [coverImage, setCoverImage] = useState<File | null>(null);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
-    const [isCompressing, setIsCompressing] = useState(false);
     const [toast, setToast] = useState({ message: '', type: '' });
 
     // Reading Log State
@@ -856,17 +855,16 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 createdBy: effectiveUser.fid
             });
 
-            // Upload cover image (it's already compressed)
+            // Upload cover image if provided
             let coverUrl: string | undefined;
             if (coverImage) {
                 try {
-                    coverUrl = await uploadCompressedCover(coverImage, newBookKey);
+                    coverUrl = await uploadBookCover(coverImage, newBookKey);
                     // Update the custom book with the cover URL
                     await updateCustomBook(newBookKey, { coverUrl });
                 } catch (uploadError) {
                     console.error("Error uploading cover:", uploadError);
-                    // Don't block the book creation, just warn the user
-                    showToast("Book added but cover upload failed (timeout or error)", "default");
+                    showToast("Book added but cover upload failed", "default");
                 }
             }
 
@@ -900,38 +898,17 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (file.size > 10 * 1024 * 1024) { // 10MB limit before compression
-                showToast("Image too large. Please select an image under 10MB", "error");
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit before compression
+                showToast("Image too large. Please select an image under 5MB", "error");
                 return;
             }
-
-            setIsCompressing(true);
-
-            // Generate preliminary preview immediately for better UX
-            const tempReader = new FileReader();
-            tempReader.onloadend = () => {
-                setCoverPreview(tempReader.result as string);
+            setCoverImage(file);
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setCoverPreview(reader.result as string);
             };
-            tempReader.readAsDataURL(file);
-
-            // Compress immediately
-            setIsCompressing(true);
-            compressImage(file)
-                .then(compressedBlob => {
-                    if (compressedBlob && compressedBlob.size > 0) {
-                        setCoverImage(compressedBlob);
-                    } else {
-                        throw new Error("Invalid compressed blob");
-                    }
-                    setIsCompressing(false);
-                })
-                .catch(error => {
-                    console.error("Compression failed:", error);
-                    showToast("Failed to process image", "error");
-                    setCoverImage(null);
-                    setCoverPreview(null);
-                    setIsCompressing(false);
-                });
+            reader.readAsDataURL(file);
         }
     };
 
@@ -1387,15 +1364,15 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                     className="cursor-pointer group relative flex flex-col"
                                 >
                                     <div className="relative aspect-[2/3] mb-3 overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
-                                        {book.coverUrl || book.coverId ? (
+                                        {book.coverId ? (
                                             <img
-                                                src={book.coverUrl || `https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`}
+                                                src={`https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`}
                                                 alt={book.bookTitle}
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <div className="w-full h-full bg-neutral-900 flex items-center justify-center text-neutral-600 p-4">
-                                                <img src="/readgoods-logo.png" alt="No Cover" className="w-full h-auto object-contain opacity-50" />
+                                            <div className="w-full h-full bg-neutral-900 flex items-center justify-center text-neutral-600">
+                                                <img src="/book-icon.png" alt="No Cover" className="w-12 h-12 object-contain opacity-50" />
                                             </div>
                                         )}
                                         {/* Status Badge */}
@@ -1502,6 +1479,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                 />
                             </div>
 
+                            {/* Cover Image Upload */}
                             <div>
                                 <label className="block text-sm font-medium text-neutral-300 mb-2">
                                     Cover Image (Optional)
@@ -1544,20 +1522,12 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                         <p className="text-xs text-neutral-500 mt-1">Max 5MB (will be compressed to under 200KB)</p>
                                     </div>
                                 )}
-                                {isCompressing && (
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg pointer-events-none">
-                                        <div className="flex flex-col items-center">
-                                            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mb-2" />
-                                            <span className="text-white text-xs font-medium">Compressing...</span>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
                             <button
                                 type="submit"
-                                disabled={isSaving || isCompressing}
-                                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-lg transition-all transform active:scale-[0.98] mt-4 flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={isSaving}
+                                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-lg transition-all transform active:scale-[0.98] mt-4 flex justify-center items-center"
                             >
                                 {isSaving ? (
                                     <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1566,10 +1536,9 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                 )}
                             </button>
                         </form>
-                    </div >
-                </div >
-            )
-            }
+                    </div>
+                </div>
+            )}
 
             <ReadingLogModal
                 isOpen={isLoggingModalOpen}
@@ -1585,7 +1554,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 type={toast.type}
                 onClose={() => setToast({ message: '', type: '' })}
             />
-        </div >
+        </div>
     );
 }
 

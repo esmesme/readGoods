@@ -7,13 +7,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
  * @param maxSizeKB - Maximum file size in KB (default 200KB)
  * @returns Compressed image as a Blob
  */
-/**
- * Compress and resize an image to be under the target size
- * @param file - The original image file
- * @param maxSizeKB - Maximum file size in KB (default 200KB)
- * @returns Compressed image as a Blob
- */
-export async function compressImage(file: File, maxSizeKB: number = 200): Promise<Blob> {
+async function compressImage(file: File, maxSizeKB: number = 200): Promise<Blob> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -105,30 +99,4 @@ export async function uploadBookCover(file: File, bookId: string): Promise<strin
         console.error('Error uploading book cover:', error);
         throw error;
     }
-}
-
-/**
- * Upload a pre-compressed book cover blob to Firebase Storage
- * @param blob - The compressed image blob
- * @param bookId - The unique ID of the book
- * @returns The download URL of the uploaded image
- */
-export async function uploadCompressedCover(blob: Blob, bookId: string): Promise<string> {
-    return new Promise(async (resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-            reject(new Error('Upload timed out after 15 seconds'));
-        }, 15000);
-
-        try {
-            const storageRef = ref(storage, `book-covers/${bookId}`);
-            await uploadBytes(storageRef, blob);
-            const url = await getDownloadURL(storageRef);
-            clearTimeout(timeoutId);
-            resolve(url);
-        } catch (error) {
-            clearTimeout(timeoutId);
-            console.error('Error uploading compressed cover:', error);
-            reject(error);
-        }
-    });
 }
