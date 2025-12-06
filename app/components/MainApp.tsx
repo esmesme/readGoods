@@ -39,11 +39,67 @@ const Toast = ({ message, type, onClose }: any) => {
 };
 
 // --- Icon Mapping and Configuration ---
-const STATUS_CONFIG: Record<string, { icon: any; color: string; bgColor: string; label: string }> = {
-    completed: { icon: BookCheck, color: 'text-green-400', bgColor: 'bg-green-900/30', label: 'Completed' },
-    current: { icon: Clock, color: 'text-yellow-400', bgColor: 'bg-yellow-900/30', label: 'Current' },
-    desired: { icon: BookmarkPlus, color: 'text-blue-400', bgColor: 'bg-blue-900/30', label: 'Desired' },
-    none: { icon: null, color: 'text-neutral-400', bgColor: 'bg-neutral-800', label: 'Add to Library' },
+// Custom icon component for "desired" status
+const DesiredIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+    <img
+        src="/desired-icon.png"
+        alt="Desired"
+        style={{ width: size * 3, height: size * 3 }}
+        className={`object-contain ${className}`}
+    />
+);
+
+// Custom icon component for "current" status
+const ReadingIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+    <img
+        src="/reading-icon.png"
+        alt="Reading"
+        style={{ width: size * 3, height: size * 3 }}
+        className={`object-contain ${className}`}
+    />
+);
+
+
+
+// Custom icon component for "completed" status
+const CompletedIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+    <img
+        src="/completed-icon.png"
+        alt="Completed"
+        style={{ width: size * 3, height: size * 3 }}
+        className={`object-contain ${className}`}
+    />
+);
+
+const STATUS_CONFIG: Record<string, { icon: any; label: string; color: string; bgColor: string; borderColor: string }> = {
+    current: {
+        icon: ReadingIcon,
+        label: "Reading",
+        color: "text-amber-400",
+        bgColor: "bg-amber-900/30",
+        borderColor: "border-amber-700"
+    },
+    completed: {
+        icon: CompletedIcon,
+        label: "Read",
+        color: "text-emerald-400",
+        bgColor: "bg-emerald-900/30",
+        borderColor: "border-emerald-700"
+    },
+    desired: {
+        icon: DesiredIcon,
+        label: "Want to Read",
+        color: "text-blue-400",
+        bgColor: "bg-blue-900/30",
+        borderColor: "border-blue-700"
+    },
+    none: {
+        icon: CircleUserRound,
+        label: "None",
+        color: "text-neutral-400",
+        bgColor: "bg-neutral-800",
+        borderColor: "border-neutral-700"
+    }
 };
 
 interface MainAppProps {
@@ -619,7 +675,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
     if (selectedBook) {
         return (
-            <div className="min-h-screen bg-gray-900 p-4">
+            <div className="min-h-screen bg-[#0a0a0a] p-4">
                 <BookCard
                     book={{ ...selectedBook, ...bookDetails }}
                     userStatus={selectedBook.userStatus}
