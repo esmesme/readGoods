@@ -5,7 +5,9 @@ import { searchBooks, BookData, getBookDetails } from "@/lib/openLibrary";
 import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers, deleteUserBook, addCustomBook, searchCustomBooks, getCustomBookDetails, updateCustomBook, saveUserProfile } from "@/lib/firestoreUtils";
 import { BookStatus, UserBook } from "@/lib/types";
 import { sdk } from "@farcaster/frame-sdk";
-import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share } from 'lucide-react';
+import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { addReadingLog, getReadingLogs, ReadingLog } from "@/lib/firestoreUtils";
 
 // ... (imports remain the same)
 
@@ -83,8 +85,8 @@ const STATUS_CONFIG: Record<string, { icon: any; label: string; color: string; b
         icon: CompletedIcon,
         label: "Completed",
         color: "text-emerald-400",
-        bgColor: "bg-neutral-800",
-        borderColor: "border-neutral-600"
+        bgColor: "bg-emerald-900/30",
+        borderColor: "border-emerald-700"
     },
     desired: {
         icon: DesiredIcon,
@@ -179,23 +181,201 @@ const FriendsStatusOverlay = ({ friends }: { friends: { userFid: number; status:
     );
 };
 
-const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any) => {
+const ReadingLogModal = ({ isOpen, onClose, onSubmit, bookTitle, isSaving }: any) => {
+    const [page, setPage] = useState("");
+    const [thoughts, setThoughts] = useState("");
+
+    if (!isOpen) return null;
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSubmit({ page: parseInt(page), thoughts });
+        setPage("");
+        setThoughts("");
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-6 w-full max-w-md shadow-2xl relative">
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 text-neutral-400 hover:text-white"
+                >
+                    <X size={20} />
+                </button>
+
+                <h3 className="text-xl font-bold text-white mb-4">Log Pages</h3>
+                <p className="text-neutral-400 mb-6 text-sm">
+                    Recording progress for <span className="text-white font-medium">{bookTitle}</span>
+                </p>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-neutral-300 mb-1">
+                            Current Page
+                        </label>
+                        <input
+                            type="number"
+                            required
+                            min="0"
+                            value={page}
+                            onChange={(e) => setPage(e.target.value)}
+                            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="e.g. 125"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-neutral-300 mb-1">
+                            Thoughts (Optional)
+                        </label>
+                        <textarea
+                            value={thoughts}
+                            onChange={(e) => setThoughts(e.target.value)}
+                            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
+                            placeholder="What's happening? How are you finding it?"
+                        />
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="mr-3 px-4 py-2 text-neutral-400 hover:text-white transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSaving || !page}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                        >
+                            {isSaving ? (
+                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                            ) : null}
+                            Save Log
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const ReadingProgressGraph = ({ logs, bookTitle }: { logs: ReadingLog[], bookTitle: string }) => {
+    if (!logs || logs.length < 2) {
+        return (
+            <div className="bg-neutral-800/50 rounded-xl p-8 text-center border border-neutral-800">
+                <LineChartIcon size={48} className="mx-auto text-neutral-600 mb-4" />
+                <h3 className="text-lg font-medium text-neutral-300 mb-2">Not Enough Data</h3>
+                <p className="text-neutral-500 max-w-sm mx-auto">
+                    Log your book progress at least twice to generate a reading graph.
+                </p>
+            </div>
+        );
+    }
+
+    const data = logs.map(log => ({
+        date: new Date(log.date.seconds * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        page: log.page,
+        thoughts: log.thoughts
+    }));
+
+    const handleShareGraph = () => {
+        const lastLog = data[data.length - 1];
+        const text = `I'm on page ${lastLog.page} of ${bookTitle}. Here's my progress! 📈`;
+        shareToFarcaster(text);
+    };
+
+    return (
+        <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-6 shadow-lg">
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-bold text-white flex items-center">
+                    <LineChartIcon size={20} className="mr-2 text-blue-400" />
+                    Reading Progress
+                </h3>
+                <button
+                    onClick={handleShareGraph}
+                    className="text-xs bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-1.5 rounded-lg transition-colors flex items-center"
+                >
+                    <Share size={14} className="mr-1.5" />
+                    Share
+                </button>
+            </div>
+
+            <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                        <XAxis
+                            dataKey="date"
+                            stroke="#666"
+                            tick={{ fill: '#888', fontSize: 12 }}
+                            tickLine={{ stroke: '#333' }}
+                        />
+                        <YAxis
+                            stroke="#666"
+                            tick={{ fill: '#888', fontSize: 12 }}
+                            tickLine={{ stroke: '#333' }}
+                            label={{ value: 'Page', angle: -90, position: 'insideLeft', fill: '#666' }}
+                        />
+                        <Tooltip
+                            contentStyle={{ backgroundColor: '#171717', borderColor: '#333', color: '#fff' }}
+                            itemStyle={{ color: '#fff' }}
+                            labelStyle={{ color: '#888', marginBottom: '0.5rem' }}
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="page"
+                            stroke="#3b82f6"
+                            strokeWidth={3}
+                            dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, fill: '#60a5fa' }}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+};
+
+const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogProgress, currentUserFid }: any) => {
     const userStatusConfig = STATUS_CONFIG[userStatus] || STATUS_CONFIG.none;
     const friendsWithBook = friendData.filter((f: any) => f.status && f.status !== 'none').length;
     const [reviewText, setReviewText] = useState("");
     const [isReviewing, setIsReviewing] = useState(false);
+    const [readingLogs, setReadingLogs] = useState<ReadingLog[]>([]);
+    const [showGraph, setShowGraph] = useState(false);
+    const [userReview, setUserReview] = useState("");
 
-    // Initialize review text if user has already reviewed
+    // Initialize review text from existing data
     useEffect(() => {
-        // Find current user's review in friendData if available (though friendData is usually *other* users)
-        // For now, we might need to pass the current user's review explicitly or fetch it.
-        // Assuming friendData might contain the current user if they are in the list, but usually it's filtered.
-        // Actually, we don't have the current user's review passed in 'book' object yet.
-        // We'll leave it empty for now or rely on fetching it if we update getBookUsers to include current user.
-    }, []);
+        // Check if current user has a review in friendData
+        const currentUserData = friendData.find((f: any) => f.userFid === currentUserFid);
+        if (currentUserData?.review) {
+            setUserReview(currentUserData.review);
+            setReviewText(currentUserData.review);
+        }
+    }, [friendData, currentUserFid]);
+
+    // Fetch reading logs
+    useEffect(() => {
+        const fetchLogs = async () => {
+            if (book.key && (userStatus === 'completed' || userStatus === 'current')) {
+                // We need the user's FID. Assuming it's passed or available in context?
+                // It's not passed directly to BookCard. We might need to pass effectiveUser or similar.
+                // Let's check MainApp usage. effectiveUser is available there.
+                // We should pass effectiveUser to BookCard.
+            }
+        };
+        // fetchLogs(); 
+        // Actually, let's pass logs from MainApp or pass effectiveUser.
+        // Passing effectiveUser is better.
+    }, [book.key, userStatus]);
 
     const handleSaveReview = () => {
         onStatusChange('completed', reviewText);
+        setUserReview(reviewText);
         setIsReviewing(false);
     };
 
@@ -264,54 +444,94 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                     )}
 
                     {/* User Status Display */}
-                    {userStatus && userStatus !== 'none' && (
+                    {userStatus === 'current' ? (
+                        <div className="mb-6">
+                            <button
+                                onClick={() => onLogProgress(book)}
+                                className="w-full flex items-center justify-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-4 py-2 rounded-lg transition-colors border border-neutral-700"
+                            >
+                                <BookOpen size={16} />
+                                <span className="text-sm font-medium">Log Pages</span>
+                            </button>
+                        </div>
+                    ) : userStatus === 'completed' ? (
+                        <>
+                            {/* Review Section - No box wrapper */}
+                            <div className="mb-6">
+                                {userReview && !isReviewing ? (
+                                    <div className="bg-neutral-800/50 p-4 rounded-xl border border-neutral-800">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h4 className="text-sm font-medium text-neutral-400">Your Review</h4>
+                                            <button
+                                                onClick={() => setIsReviewing(true)}
+                                                className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                                            >
+                                                Edit
+                                            </button>
+                                        </div>
+                                        <p className="text-sm text-neutral-300 italic">"{userReview}"</p>
+                                    </div>
+                                ) : !isReviewing ? (
+                                    <button
+                                        onClick={() => setIsReviewing(true)}
+                                        className="text-sm bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors w-full text-left"
+                                    >
+                                        Write a review...
+                                    </button>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <textarea
+                                            value={reviewText}
+                                            onChange={(e) => setReviewText(e.target.value)}
+                                            placeholder="What did you think of this book?"
+                                            className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[100px]"
+                                        />
+                                        <div className="flex justify-end space-x-2">
+                                            <button
+                                                onClick={() => {
+                                                    setIsReviewing(false);
+                                                    setReviewText(userReview);
+                                                }}
+                                                className="px-3 py-1.5 text-sm text-neutral-400 hover:text-white"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleSaveReview}
+                                                className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium"
+                                            >
+                                                Save Review
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Generate Progress Graph Button - Separate element */}
+                            <div className="mb-6">
+                                {!showGraph ? (
+                                    <button
+                                        onClick={() => setShowGraph(true)}
+                                        className="w-full flex items-center justify-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-4 py-2 rounded-lg transition-colors border border-neutral-700"
+                                    >
+                                        <LineChartIcon size={16} />
+                                        <span className="text-sm font-medium">Generate Progress Graph</span>
+                                    </button>
+                                ) : (
+                                    <ReadingProgressGraph logs={book.logs || []} bookTitle={book.title || book.bookTitle} />
+                                )}
+                            </div>
+                        </>
+                    ) : userStatus && userStatus !== 'none' ? (
                         <div className={`flex flex-col space-y-4 p-4 rounded-xl border-l-4 ${userStatusConfig.color} ${userStatusConfig.bgColor} ${userStatusConfig.borderColor} shadow-sm mb-6`}>
                             <div className="flex items-center space-x-2">
                                 <CircleUserRound size={24} className={userStatusConfig.color} />
                                 <span className="font-semibold text-neutral-200">
-                                    {userStatus === 'completed'
-                                        ? "You finished the book! What did you think? Publish a review for others to see."
-                                        : `Your Status: ${userStatusConfig.label}`}
+                                    {`Your Status: ${userStatusConfig.label}`}
                                 </span>
                             </div>
-
-                            {userStatus === 'completed' && (
-                                <div className="mt-2 w-full">
-                                    {!isReviewing ? (
-                                        <button
-                                            onClick={() => setIsReviewing(true)}
-                                            className="text-sm bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors w-full text-left"
-                                        >
-                                            Write a review...
-                                        </button>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            <textarea
-                                                value={reviewText}
-                                                onChange={(e) => setReviewText(e.target.value)}
-                                                placeholder="What did you think of this book?"
-                                                className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[100px]"
-                                            />
-                                            <div className="flex justify-end space-x-2">
-                                                <button
-                                                    onClick={() => setIsReviewing(false)}
-                                                    className="px-3 py-1.5 text-sm text-neutral-400 hover:text-white"
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button
-                                                    onClick={handleSaveReview}
-                                                    className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium"
-                                                >
-                                                    Save Review
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </div>
-                    )}
+                    ) : null}
                 </div>
             </div>
 
@@ -486,7 +706,14 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         description: '',
         genre: ''
     });
+
     const [toast, setToast] = useState({ message: '', type: '' });
+
+    // Reading Log State
+    const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
+    const [loggingBook, setLoggingBook] = useState<UserBook | null>(null);
+    const [readingLogs, setReadingLogs] = useState<ReadingLog[]>([]);
+    const [showLogBookDropdown, setShowLogBookDropdown] = useState(false);
 
     // Fallback user for development/testing if not in Farcaster frame
     const effectiveUser = farcasterUser?.fid ? farcasterUser : { fid: 999999, username: 'dev_user' };
@@ -660,6 +887,55 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         setBookDetails(details);
         setBookUsers(users);
         setLoadingDetails(false);
+
+        // Fetch reading logs if book is current or completed
+        if (userStatus === 'current' || userStatus === 'completed') {
+            if (effectiveUser?.fid) {
+                const logs = await getReadingLogs(effectiveUser.fid, bookKey);
+                setReadingLogs(logs);
+            }
+        } else {
+            setReadingLogs([]);
+        }
+    };
+
+    const handleLogProgress = (book: UserBook) => {
+        setLoggingBook(book);
+        setIsLoggingModalOpen(true);
+        setShowLogBookDropdown(false);
+    };
+
+    const handleSaveLog = async (logData: { page: number; thoughts?: string }) => {
+        if (!loggingBook || !effectiveUser?.fid) return;
+
+        setIsSaving(true);
+        try {
+            await addReadingLog(effectiveUser.fid, loggingBook.bookKey, logData);
+            showToast("Progress logged!", "success");
+            setIsLoggingModalOpen(false);
+
+            // Refresh logs if we are viewing this book
+            if (selectedBook && (selectedBook.key === loggingBook.bookKey || (selectedBook as any).bookKey === loggingBook.bookKey)) {
+                const logs = await getReadingLogs(effectiveUser.fid, loggingBook.bookKey);
+                setReadingLogs(logs);
+            }
+        } catch (error) {
+            console.error("Error saving log:", error);
+            showToast("Failed to save log", "error");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleHomeLogClick = () => {
+        const currentBooks = userBooks.filter(b => b.status === 'current');
+        if (currentBooks.length === 0) {
+            showToast("No books currently reading", "default");
+        } else if (currentBooks.length === 1) {
+            handleLogProgress(currentBooks[0]);
+        } else {
+            setShowLogBookDropdown(!showLogBookDropdown);
+        }
     };
 
     const handleStatusChange = async (newStatus: BookStatus | 'none', review?: string) => {
@@ -729,14 +1005,25 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         return (
             <div className="min-h-screen bg-[#0a0a0a] p-4">
                 <BookCard
-                    book={{ ...selectedBook, ...bookDetails }}
+                    book={{ ...selectedBook, ...bookDetails, logs: readingLogs }}
                     userStatus={selectedBook.userStatus}
                     friendData={bookUsers}
                     onStatusChange={handleStatusChange}
                     onBack={() => {
                         setSelectedBook(null);
                         setBookDetails(null);
+                        setReadingLogs([]);
                     }}
+                    isSaving={isSaving}
+                    onLogProgress={handleLogProgress}
+                    currentUserFid={effectiveUser?.fid}
+                />
+
+                <ReadingLogModal
+                    isOpen={isLoggingModalOpen}
+                    onClose={() => setIsLoggingModalOpen(false)}
+                    onSubmit={handleSaveLog}
+                    bookTitle={loggingBook?.bookTitle || "Book"}
                     isSaving={isSaving}
                 />
             </div>
@@ -943,6 +1230,31 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         <div>
                             <h2 className="text-2xl font-bold text-white tracking-tight">LIBRARY</h2>
                             <p className="text-neutral-400 mt-1">{getLibraryTagline()}</p>
+
+                            {/* Log Pages Button */}
+                            <div className="relative mt-3">
+                                <button
+                                    onClick={handleHomeLogClick}
+                                    className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors border border-neutral-700"
+                                >
+                                    <BookOpen size={16} />
+                                    <span className="text-sm font-medium">Log Pages</span>
+                                </button>
+
+                                {showLogBookDropdown && (
+                                    <div className="absolute top-full left-0 mt-2 w-64 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 py-1">
+                                        {userBooks.filter(b => b.status === 'current').map(book => (
+                                            <button
+                                                key={book.bookKey}
+                                                onClick={() => handleLogProgress(book)}
+                                                className="w-full text-left px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors truncate"
+                                            >
+                                                {book.bookTitle}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <button
                             onClick={() => shareToFarcaster("i just read X pages of my book today and it has me feeling....")}
@@ -1006,90 +1318,108 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
             {/* Manual Entry Modal */}
             {showManualEntry && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                    <div className="bg-neutral-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-neutral-800">
-                        <div className="p-4 border-b border-neutral-800 flex justify-between items-center">
-                            <h3 className="font-bold text-lg text-white">Add Book Manually</h3>
-                            <button
-                                onClick={() => setShowManualEntry(false)}
-                                className="text-neutral-400 hover:text-white p-1"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                    <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-6 w-full max-w-md shadow-2xl relative">
+                        <button
+                            onClick={() => setShowManualEntry(false)}
+                            className="absolute top-4 right-4 text-neutral-400 hover:text-white"
+                        >
+                            <X size={20} />
+                        </button>
 
-                        <form onSubmit={handleManualBookSubmit} className="p-4 space-y-4">
+                        <h3 className="text-xl font-bold text-white mb-6">Add Manual Entry</h3>
+
+                        <form onSubmit={handleManualBookSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-neutral-300 mb-1">Title *</label>
+                                <label className="block text-sm font-medium text-neutral-300 mb-1">
+                                    Book Title *
+                                </label>
                                 <input
                                     type="text"
                                     required
                                     value={manualBookForm.title}
-                                    onChange={e => setManualBookForm({ ...manualBookForm, title: e.target.value })}
-                                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 text-white rounded-lg focus:ring-2 focus:ring-neutral-500 outline-none"
-                                    placeholder="Book Title"
+                                    onChange={(e) => setManualBookForm({ ...manualBookForm, title: e.target.value })}
+                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="Enter book title"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-neutral-300 mb-1">Author *</label>
+                                <label className="block text-sm font-medium text-neutral-300 mb-1">
+                                    Author *
+                                </label>
                                 <input
                                     type="text"
                                     required
                                     value={manualBookForm.author}
-                                    onChange={e => setManualBookForm({ ...manualBookForm, author: e.target.value })}
-                                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 text-white rounded-lg focus:ring-2 focus:ring-neutral-500 outline-none"
-                                    placeholder="Author Name"
+                                    onChange={(e) => setManualBookForm({ ...manualBookForm, author: e.target.value })}
+                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="Enter author name"
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-neutral-300 mb-1">Year</label>
+                                    <label className="block text-sm font-medium text-neutral-300 mb-1">
+                                        Year (Optional)
+                                    </label>
                                     <input
                                         type="number"
                                         value={manualBookForm.year}
-                                        onChange={e => setManualBookForm({ ...manualBookForm, year: e.target.value })}
-                                        className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 text-white rounded-lg focus:ring-2 focus:ring-neutral-500 outline-none"
+                                        onChange={(e) => setManualBookForm({ ...manualBookForm, year: e.target.value })}
+                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                         placeholder="YYYY"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-300 mb-1">
+                                        Genre (Optional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={manualBookForm.genre}
+                                        onChange={(e) => setManualBookForm({ ...manualBookForm, genre: e.target.value })}
+                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Fiction, Sci-Fi..."
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-neutral-300 mb-1">Description</label>
+                                <label className="block text-sm font-medium text-neutral-300 mb-1">
+                                    Description (Optional)
+                                </label>
                                 <textarea
                                     value={manualBookForm.description}
-                                    onChange={e => setManualBookForm({ ...manualBookForm, description: e.target.value })}
-                                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 text-white rounded-lg focus:ring-2 focus:ring-neutral-500 outline-none h-24 resize-none"
-                                    placeholder="Brief description..."
+                                    onChange={(e) => setManualBookForm({ ...manualBookForm, description: e.target.value })}
+                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
+                                    placeholder="Brief description of the book..."
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-neutral-300 mb-1">Genres (comma separated)</label>
-                                <input
-                                    type="text"
-                                    value={manualBookForm.genre}
-                                    onChange={e => setManualBookForm({ ...manualBookForm, genre: e.target.value })}
-                                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 text-white rounded-lg focus:ring-2 focus:ring-neutral-500 outline-none"
-                                    placeholder="Fiction, Sci-Fi, etc."
-                                />
-                            </div>
-
-                            <div className="pt-2">
-                                <button
-                                    type="submit"
-                                    disabled={isSaving}
-                                    className="w-full py-2.5 bg-white text-neutral-900 rounded-lg font-medium hover:bg-neutral-200 transition-colors disabled:opacity-50"
-                                >
-                                    {isSaving ? 'Adding Book...' : 'Add Book'}
-                                </button>
-                            </div>
+                            <button
+                                type="submit"
+                                disabled={isSaving}
+                                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-lg transition-all transform active:scale-[0.98] mt-4 flex justify-center items-center"
+                            >
+                                {isSaving ? (
+                                    <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    "Add Book"
+                                )}
+                            </button>
                         </form>
                     </div>
                 </div>
             )}
+
+            <ReadingLogModal
+                isOpen={isLoggingModalOpen}
+                onClose={() => setIsLoggingModalOpen(false)}
+                onSubmit={handleSaveLog}
+                bookTitle={loggingBook?.bookTitle || "Book"}
+                isSaving={isSaving}
+            />
 
             {/* Toast Notification */}
             <Toast

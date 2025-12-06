@@ -40,6 +40,10 @@ export async function saveBookToFirestore(
             updatedAt: new Date()
         };
 
+        if (status === 'current') {
+            dataToSave.startedReadingAt = new Date();
+        }
+
         if (review !== undefined) {
             dataToSave.review = review;
         }
@@ -152,6 +156,62 @@ export async function deleteUserBook(userFid: number, bookKey: string) {
     } catch (error) {
         console.error('Error deleting user book:', error);
         throw error;
+    }
+}
+
+export interface ReadingLog {
+    id?: string;
+    page: number;
+    thoughts?: string;
+    date: any; // Timestamp
+}
+
+export async function addReadingLog(userFid: number, bookKey: string, logData: { page: number; thoughts?: string }) {
+    try {
+        const docId = bookKey.replace('/works/', '');
+        const userBookId = `${userFid}_${docId}`;
+        const logsRef = collection(db, USER_BOOKS_COLLECTION, userBookId, 'logs');
+
+        await addDoc(logsRef, {
+            ...logData,
+            date: new Date()
+        });
+
+        // Update the main userBook doc with latest page/progress if needed
+        const userBookRef = doc(db, USER_BOOKS_COLLECTION, userBookId);
+        await updateDoc(userBookRef, {
+            lastPageRead: logData.page,
+            updatedAt: new Date()
+        });
+
+    } catch (error) {
+        console.error('Error adding reading log:', error);
+        throw error;
+    }
+}
+
+export async function getReadingLogs(userFid: number, bookKey: string): Promise<ReadingLog[]> {
+    try {
+        const docId = bookKey.replace('/works/', '');
+        const userBookId = `${userFid}_${docId}`;
+        const logsRef = collection(db, USER_BOOKS_COLLECTION, userBookId, 'logs');
+
+        // Order by date
+        // Note: You might need to create an index in Firestore for this query
+        // For now, we'll fetch all and sort client-side if needed, but 'orderBy' is better
+        // const q = query(logsRef, orderBy('date', 'asc')); 
+        // Let's stick to simple fetch and sort in JS to avoid index creation requirements for now
+
+        const querySnapshot = await getDocs(logsRef);
+        const logs = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        } as ReadingLog));
+
+        return logs.sort((a, b) => (a.date.seconds - b.date.seconds));
+    } catch (error) {
+        console.error('Error getting reading logs:', error);
+        return [];
     }
 }
 
