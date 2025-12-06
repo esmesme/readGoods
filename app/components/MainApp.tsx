@@ -1400,8 +1400,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
             {/* Manual Entry Modal */}
             {showManualEntry && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                    <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-6 w-full max-w-md shadow-2xl relative">
+                <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 overflow-y-auto py-4">
+                    <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-6 w-full max-w-md shadow-2xl relative my-auto">
                         <button
                             onClick={() => setShowManualEntry(false)}
                             className="absolute top-4 right-4 text-neutral-400 hover:text-white"
