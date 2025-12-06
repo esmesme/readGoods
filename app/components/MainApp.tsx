@@ -698,6 +698,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     const mobileDropdownRef = useRef<HTMLDivElement>(null);
     const [userBooks, setUserBooks] = useState<UserBook[]>([]);
     const [selectedBook, setSelectedBook] = useState<(BookData & { userStatus?: BookStatus }) | null>(null);
+    const selectedBookKeyRef = useRef<string | null>(null);
     const [bookDetails, setBookDetails] = useState<any>(null);
     const [bookUsers, setBookUsers] = useState<{ userFid: number; status: BookStatus }[]>([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
@@ -801,14 +802,21 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             setUserBooks(books);
 
             // Update selected book status if it exists in the updated list
-            if (selectedBook) {
-                const bookKey = 'bookKey' in selectedBook ? selectedBook.bookKey : selectedBook.key;
-                const updatedBook = books.find(b => b.bookKey === bookKey);
+            const currentBookKey = selectedBookKeyRef.current;
+            if (currentBookKey) {
+                const updatedBook = books.find(b => b.bookKey === currentBookKey);
                 if (updatedBook) {
-                    setSelectedBook(prev => prev ? ({ ...prev, userStatus: updatedBook.status }) : null);
-                } else if ('userStatus' in selectedBook) {
-                    // If book was removed or status cleared, update local state
-                    setSelectedBook(prev => prev ? ({ ...prev, userStatus: undefined }) : null);
+                    // Update the selectedBook with the new status from Firestore
+                    setSelectedBook(prev => {
+                        if (!prev) return null;
+                        return { ...prev, userStatus: updatedBook.status };
+                    });
+                } else {
+                    // If book was removed from library, clear status
+                    setSelectedBook(prev => {
+                        if (!prev) return null;
+                        return { ...prev, userStatus: undefined };
+                    });
                 }
             }
         }, (error) => {
@@ -923,10 +931,13 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
     const handleBookClick = async (book: UserBook | BookData) => {
         const userStatus = 'status' in book ? book.status : undefined;
+        const bookKey = 'bookKey' in book ? book.bookKey : book.key;
+
+        // Update the ref to track the current selected book
+        selectedBookKeyRef.current = bookKey;
+
         setSelectedBook({ ...book, userStatus } as any);
         setLoadingDetails(true);
-
-        const bookKey = 'bookKey' in book ? book.bookKey : book.key;
 
         // Load details and users in parallel
         const [details, users] = await Promise.all([
@@ -1063,6 +1074,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         setSelectedBook(null);
                         setBookDetails(null);
                         setReadingLogs([]);
+                        selectedBookKeyRef.current = null;
                     }}
                     isSaving={isSaving}
                     onLogProgress={handleLogProgress}
