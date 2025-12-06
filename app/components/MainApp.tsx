@@ -816,7 +816,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         });
 
         return () => unsubscribe();
-    }, [effectiveUser?.fid, selectedBook ? ('bookKey' in selectedBook ? selectedBook.bookKey : selectedBook.key) : null]); // Re-attach if user changes
+    }, [effectiveUser?.fid]); // Only re-attach when user changes
 
     const handleSearchResultClick = (book: BookData) => {
         handleBookClick(book);
