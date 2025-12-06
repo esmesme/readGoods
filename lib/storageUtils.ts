@@ -7,7 +7,13 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
  * @param maxSizeKB - Maximum file size in KB (default 200KB)
  * @returns Compressed image as a Blob
  */
-async function compressImage(file: File, maxSizeKB: number = 200): Promise<Blob> {
+/**
+ * Compress and resize an image to be under the target size
+ * @param file - The original image file
+ * @param maxSizeKB - Maximum file size in KB (default 200KB)
+ * @returns Compressed image as a Blob
+ */
+export async function compressImage(file: File, maxSizeKB: number = 200): Promise<Blob> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -97,6 +103,23 @@ export async function uploadBookCover(file: File, bookId: string): Promise<strin
         return downloadURL;
     } catch (error) {
         console.error('Error uploading book cover:', error);
+        throw error;
+    }
+}
+
+/**
+ * Upload a pre-compressed book cover blob to Firebase Storage
+ * @param blob - The compressed image blob
+ * @param bookId - The unique ID of the book
+ * @returns The download URL of the uploaded image
+ */
+export async function uploadCompressedCover(blob: Blob, bookId: string): Promise<string> {
+    try {
+        const storageRef = ref(storage, `book-covers/${bookId}`);
+        await uploadBytes(storageRef, blob);
+        return await getDownloadURL(storageRef);
+    } catch (error) {
+        console.error('Error uploading compressed cover:', error);
         throw error;
     }
 }

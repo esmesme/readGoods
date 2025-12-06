@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { searchBooks, BookData, getBookDetails } from "@/lib/openLibrary";
 import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers, deleteUserBook, addCustomBook, searchCustomBooks, getCustomBookDetails, updateCustomBook, saveUserProfile } from "@/lib/firestoreUtils";
-import { uploadBookCover } from "@/lib/storageUtils";
+import { uploadBookCover, compressImage, uploadCompressedCover } from "@/lib/storageUtils";
 import { BookStatus, UserBook } from "@/lib/types";
 import { sdk } from "@farcaster/frame-sdk";
 import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen } from 'lucide-react';
@@ -713,8 +713,9 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         description: '',
         genre: ''
     });
-    const [coverImage, setCoverImage] = useState<File | null>(null);
+    const [coverImage, setCoverImage] = useState<Blob | null>(null);
     const [coverPreview, setCoverPreview] = useState<string | null>(null);
+    const [isCompressing, setIsCompressing] = useState(false);
     const [toast, setToast] = useState({ message: '', type: '' });
 
     // Reading Log State
@@ -855,11 +856,11 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 createdBy: effectiveUser.fid
             });
 
-            // Upload cover image if provided
+            // Upload cover image (it's already compressed)
             let coverUrl: string | undefined;
             if (coverImage) {
                 try {
-                    coverUrl = await uploadBookCover(coverImage, newBookKey);
+                    coverUrl = await uploadCompressedCover(coverImage, newBookKey);
                     // Update the custom book with the cover URL
                     await updateCustomBook(newBookKey, { coverUrl });
                 } catch (uploadError) {
@@ -898,17 +899,33 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (file.size > 5 * 1024 * 1024) { // 5MB limit before compression
-                showToast("Image too large. Please select an image under 5MB", "error");
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit before compression
+                showToast("Image too large. Please select an image under 10MB", "error");
                 return;
             }
-            setCoverImage(file);
-            // Create preview
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setCoverPreview(reader.result as string);
+
+            setIsCompressing(true);
+
+            // Generate preliminary preview immediately for better UX
+            const tempReader = new FileReader();
+            tempReader.onloadend = () => {
+                setCoverPreview(tempReader.result as string);
             };
-            reader.readAsDataURL(file);
+            tempReader.readAsDataURL(file);
+
+            // Compress immediately
+            compressImage(file)
+                .then(compressedBlob => {
+                    setCoverImage(compressedBlob);
+                    setIsCompressing(false);
+                })
+                .catch(error => {
+                    console.error("Compression failed:", error);
+                    showToast("Failed to process image", "error");
+                    setCoverImage(null);
+                    setCoverPreview(null);
+                    setIsCompressing(false);
+                });
         }
     };
 
@@ -1479,7 +1496,6 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                 />
                             </div>
 
-                            {/* Cover Image Upload */}
                             <div>
                                 <label className="block text-sm font-medium text-neutral-300 mb-2">
                                     Cover Image (Optional)
@@ -1522,12 +1538,20 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                         <p className="text-xs text-neutral-500 mt-1">Max 5MB (will be compressed to under 200KB)</p>
                                     </div>
                                 )}
+                                {isCompressing && (
+                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg pointer-events-none">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mb-2" />
+                                            <span className="text-white text-xs font-medium">Compressing...</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <button
                                 type="submit"
-                                disabled={isSaving}
-                                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-lg transition-all transform active:scale-[0.98] mt-4 flex justify-center items-center"
+                                disabled={isSaving || isCompressing}
+                                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-lg transition-all transform active:scale-[0.98] mt-4 flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isSaving ? (
                                     <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1536,9 +1560,10 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                 )}
                             </button>
                         </form>
-                    </div>
-                </div>
-            )}
+                    </div >
+                </div >
+            )
+            }
 
             <ReadingLogModal
                 isOpen={isLoggingModalOpen}
@@ -1554,7 +1579,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 type={toast.type}
                 onClose={() => setToast({ message: '', type: '' })}
             />
-        </div>
+        </div >
     );
 }
 
