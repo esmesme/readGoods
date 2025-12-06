@@ -5,6 +5,7 @@ export interface UserBook {
     bookTitle: string;
     bookAuthors?: string[];
     coverId?: number;
+    coverUrl?: string;
     status: BookStatus;
     loggedAt: Date;
     updatedAt: Date;

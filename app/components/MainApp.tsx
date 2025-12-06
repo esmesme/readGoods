@@ -425,8 +425,8 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                             className="w-32 h-48 md:w-48 md:h-72 object-cover rounded-lg shadow-lg border border-neutral-800"
                         />
                     ) : (
-                        <div className="w-32 h-48 md:w-48 md:h-72 bg-neutral-800 rounded-lg shadow-lg flex items-center justify-center border border-neutral-700">
-                            <img src="/book-icon.png" alt="No Cover" className="w-16 h-16 object-contain opacity-50" />
+                        <div className="w-32 h-48 md:w-48 md:h-72 bg-neutral-800 rounded-lg shadow-lg flex items-center justify-center border border-neutral-700 p-4">
+                            <img src="/readgoods-logo.png" alt="No Cover" className="w-full h-auto object-contain opacity-50" />
                         </div>
                     )}
                     <FriendsStatusOverlay friends={friendData} />
@@ -629,7 +629,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
 };
 
 const SearchResult = ({ book, onStatusChange, onClick }: any) => {
-    const coverUrl = book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-S.jpg` : null;
+    const coverUrl = book.coverUrl || (book.cover_i ? `https://covers.openlibrary.org/b/id/${book.cover_i}-S.jpg` : null);
 
     return (
         <div
@@ -645,8 +645,8 @@ const SearchResult = ({ book, onStatusChange, onClick }: any) => {
                             className="w-12 h-18 object-cover rounded-md"
                         />
                     ) : (
-                        <div className="w-12 h-18 bg-neutral-800 rounded-md flex items-center justify-center">
-                            <img src="/book-icon.png" alt="No Cover" className="w-8 h-8 object-contain opacity-50" />
+                        <div className="w-12 h-18 bg-neutral-800 rounded-md flex items-center justify-center p-2">
+                            <img src="/readgoods-logo.png" alt="No Cover" className="w-full h-auto object-contain opacity-50" />
                         </div>
                     )}
                 </div>
@@ -1364,15 +1364,15 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                     className="cursor-pointer group relative flex flex-col"
                                 >
                                     <div className="relative aspect-[2/3] mb-3 overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
-                                        {book.coverId ? (
+                                        {book.coverUrl || book.coverId ? (
                                             <img
-                                                src={`https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`}
+                                                src={book.coverUrl || `https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`}
                                                 alt={book.bookTitle}
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <div className="w-full h-full bg-neutral-900 flex items-center justify-center text-neutral-600">
-                                                <img src="/book-icon.png" alt="No Cover" className="w-12 h-12 object-contain opacity-50" />
+                                            <div className="w-full h-full bg-neutral-900 flex items-center justify-center text-neutral-600 p-4">
+                                                <img src="/readgoods-logo.png" alt="No Cover" className="w-full h-auto object-contain opacity-50" />
                                             </div>
                                         )}
                                         {/* Status Badge */}
