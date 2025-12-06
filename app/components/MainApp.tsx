@@ -1007,21 +1007,39 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
         if (!selectedBook) return;
 
+        // Get the book key (UserBook has 'bookKey', BookData has 'key')
+        const bookKey = ('bookKey' in selectedBook ? selectedBook.bookKey : selectedBook.key) as string;
+
         // Optimistic update
-        const bookData = { ...selectedBook };
-        if ('userStatus' in bookData) {
-            bookData.userStatus = newStatus !== 'none' ? newStatus : undefined;
-        }
-        setSelectedBook(bookData as any);
+        const updatedBook = { ...selectedBook, userStatus: newStatus !== 'none' ? newStatus : undefined };
+        setSelectedBook(updatedBook as any);
 
         setIsSaving(true);
         try {
             if (newStatus === 'none') {
-                await deleteUserBook(effectiveUser.fid, bookData.key);
+                await deleteUserBook(effectiveUser.fid, bookKey);
                 showToast("Removed from library", "success");
                 setSelectedBook(null); // Redirect to library
+                selectedBookKeyRef.current = null;
             } else {
-                await saveBookToFirestore(bookData as BookData, effectiveUser.fid, newStatus, review);
+                // Create a proper BookData object for saveBookToFirestore
+                const bookDataToSave: BookData = {
+                    key: bookKey,
+                    title: (selectedBook.title || ('bookTitle' in selectedBook ? (selectedBook as any).bookTitle : '')) as string,
+                    author_name: (selectedBook.author_name || ('bookAuthors' in selectedBook ? (selectedBook as any).bookAuthors : undefined)) as string[] | undefined,
+                    cover_i: (selectedBook.cover_i || ('coverId' in selectedBook ? (selectedBook as any).coverId : undefined)) as number | undefined,
+                    first_publish_year: selectedBook.first_publish_year as number | undefined,
+                    coverUrl: selectedBook.coverUrl as string | undefined
+                };
+
+                // Remove undefined fields (Firestore doesn't accept undefined)
+                Object.keys(bookDataToSave).forEach(key => {
+                    if ((bookDataToSave as any)[key] === undefined) {
+                        delete (bookDataToSave as any)[key];
+                    }
+                });
+
+                await saveBookToFirestore(bookDataToSave, effectiveUser.fid, newStatus, review);
                 showToast(`Updated status to ${STATUS_CONFIG[newStatus].label}`, "success");
                 if (review) {
                     showToast("Review saved!", "success");
@@ -1030,6 +1048,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         } catch (error) {
             console.error("Error updating status:", error);
             showToast("Failed to update status", "error");
+            // Revert optimistic update on error
+            setSelectedBook(selectedBook);
         } finally {
             setIsSaving(false);
         }
