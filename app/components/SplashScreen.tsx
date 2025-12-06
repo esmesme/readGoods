@@ -24,9 +24,9 @@ export default function SplashScreen({ username, onComplete }: SplashScreenProps
                 className={`transition-opacity duration-1000 ${fadeIn ? "opacity-100" : "opacity-0"
                     }`}
             >
-                <h1 className="text-white font-bold text-5xl md:text-7xl letter-spacing-wide mb-8 px-4 text-center">
-                    readgoods
-                </h1>
+                <div className="mb-8 px-4 text-center">
+                    <img src="/readgoods-logo.png" alt="readgoods" className="h-16 md:h-24 object-contain mx-auto" />
+                </div>
                 {username && (
                     <p className="text-white font-light text-xl text-center letter-spacing-wide">
                         WELCOME {username.toUpperCase()}

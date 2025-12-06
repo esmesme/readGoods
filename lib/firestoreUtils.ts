@@ -7,32 +7,49 @@ const BOOKS_COLLECTION = 'books';
 const USER_BOOKS_COLLECTION = 'userBooks';
 const USERS_COLLECTION = 'users';
 
-export async function saveBookToFirestore(book: BookData, userFid: number, status: BookStatus) {
-    try {
-        const docId = book.key.replace('/works/', '');
+// Helper function to get the document ID for a book
+function getBookDocId(book: BookData): string {
+    return book.key.replace('/works/', '');
+}
 
-        // Save to global books collection
-        const bookRef = doc(db, BOOKS_COLLECTION, docId);
+export async function saveBookToFirestore(
+    book: BookData,
+    userFid: number,
+    status: BookStatus,
+    review?: string
+) {
+    try {
+        const bookDocId = getBookDocId(book);
+
+        // 1. Save/Update the book details in 'books' collection
+        const bookRef = doc(db, BOOKS_COLLECTION, bookDocId);
         await setDoc(bookRef, {
             ...book,
-            updatedAt: new Date(),
+            updatedAt: new Date()
         }, { merge: true });
 
-        // Save to user's personal collection
-        const userBookRef = doc(db, USER_BOOKS_COLLECTION, `${userFid}_${docId}`);
-        await setDoc(userBookRef, {
+        // 2. Save/Update the user's relationship to the book
+        // We use a composite ID: `${userFid}_${bookDocId}`
+        const userBookId = `${userFid}_${bookDocId}`;
+        const userBookRef = doc(db, USER_BOOKS_COLLECTION, userBookId);
+
+        const dataToSave: any = {
             userFid,
-            bookKey: book.key,
-            bookTitle: book.title,
-            bookAuthors: book.author_name,
-            coverId: book.cover_i,
+            bookKey: book.key, // Store the full book key here
             status,
-            loggedAt: new Date(),
-            updatedAt: new Date(),
-        }, { merge: true });
-        return docId;
+            updatedAt: new Date()
+        };
+
+        if (review !== undefined) {
+            dataToSave.review = review;
+        }
+
+        await setDoc(userBookRef, dataToSave, { merge: true });
+
+        console.log(`Saved book ${book.key} for user ${userFid} with status ${status}`);
+        return bookDocId;
     } catch (error) {
-        console.error('Error saving book to Firestore:', error);
+        console.error("Error saving book to Firestore:", error);
         throw error;
     }
 }
@@ -78,20 +95,18 @@ export async function updateBookStatus(userFid: number, bookKey: string, status:
     }
 }
 
-export async function getBookUsers(bookKey: string): Promise<{ userFid: number; status: BookStatus; username?: string; displayName?: string; pfpUrl?: string }[]> {
+export async function getBookUsers(bookKey: string): Promise<{ userFid: number; status: BookStatus; username?: string; displayName?: string; pfpUrl?: string; review?: string }[]> {
     try {
-        const q = query(
-            collection(db, USER_BOOKS_COLLECTION),
-            where('bookKey', '==', bookKey)
-        );
+        const q = query(collection(db, USER_BOOKS_COLLECTION), where("bookKey", "==", bookKey));
         const querySnapshot = await getDocs(q);
 
-        const userBooks = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return { userFid: data.userFid, status: data.status };
-        });
+        const userBooks = querySnapshot.docs.map(doc => ({
+            userFid: doc.data().userFid,
+            status: doc.data().status as BookStatus,
+            review: doc.data().review as string | undefined
+        }));
 
-        // Fetch user profiles
+        // Fetch user profiles for each user
         const usersWithProfiles = await Promise.all(userBooks.map(async (ub) => {
             try {
                 const userDoc = await getDoc(doc(db, USERS_COLLECTION, ub.userFid.toString()));
@@ -112,7 +127,7 @@ export async function getBookUsers(bookKey: string): Promise<{ userFid: number; 
 
         return usersWithProfiles;
     } catch (error) {
-        console.error('Error getting book users:', error);
+        console.error("Error getting book users:", error);
         return [];
     }
 }

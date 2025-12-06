@@ -81,10 +81,10 @@ const STATUS_CONFIG: Record<string, { icon: any; label: string; color: string; b
     },
     completed: {
         icon: CompletedIcon,
-        label: "Read",
+        label: "Completed",
         color: "text-emerald-400",
-        bgColor: "bg-emerald-900/30",
-        borderColor: "border-emerald-700"
+        bgColor: "bg-neutral-800",
+        borderColor: "border-neutral-600"
     },
     desired: {
         icon: DesiredIcon,
@@ -182,6 +182,22 @@ const FriendsStatusOverlay = ({ friends }: { friends: { userFid: number; status:
 const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any) => {
     const userStatusConfig = STATUS_CONFIG[userStatus] || STATUS_CONFIG.none;
     const friendsWithBook = friendData.filter((f: any) => f.status && f.status !== 'none').length;
+    const [reviewText, setReviewText] = useState("");
+    const [isReviewing, setIsReviewing] = useState(false);
+
+    // Initialize review text if user has already reviewed
+    useEffect(() => {
+        // Find current user's review in friendData if available (though friendData is usually *other* users)
+        // For now, we might need to pass the current user's review explicitly or fetch it.
+        // Assuming friendData might contain the current user if they are in the list, but usually it's filtered.
+        // Actually, we don't have the current user's review passed in 'book' object yet.
+        // We'll leave it empty for now or rely on fetching it if we update getBookUsers to include current user.
+    }, []);
+
+    const handleSaveReview = () => {
+        onStatusChange('completed', reviewText);
+        setIsReviewing(false);
+    };
 
     // Helper to get cover URL
     const getCoverUrl = (b: any) => {
@@ -249,11 +265,51 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
 
                     {/* User Status Display */}
                     {userStatus && userStatus !== 'none' && (
-                        <div className={`flex items-center space-x-2 p-3 rounded-xl border-l-4 ${userStatusConfig.color} ${userStatusConfig.bgColor} border-${userStatusConfig.color.split('-')[1]}-500 shadow-sm mb-6`}>
-                            <CircleUserRound size={24} className={userStatusConfig.color} />
-                            <span className="font-semibold text-neutral-200">
-                                Your Status: {userStatusConfig.label}
-                            </span>
+                        <div className={`flex flex-col space-y-4 p-4 rounded-xl border-l-4 ${userStatusConfig.color} ${userStatusConfig.bgColor} ${userStatusConfig.borderColor} shadow-sm mb-6`}>
+                            <div className="flex items-center space-x-2">
+                                <CircleUserRound size={24} className={userStatusConfig.color} />
+                                <span className="font-semibold text-neutral-200">
+                                    {userStatus === 'completed'
+                                        ? "You finished the book! What did you think? Publish a review for others to see."
+                                        : `Your Status: ${userStatusConfig.label}`}
+                                </span>
+                            </div>
+
+                            {userStatus === 'completed' && (
+                                <div className="mt-2 w-full">
+                                    {!isReviewing ? (
+                                        <button
+                                            onClick={() => setIsReviewing(true)}
+                                            className="text-sm bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors w-full text-left"
+                                        >
+                                            Write a review...
+                                        </button>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <textarea
+                                                value={reviewText}
+                                                onChange={(e) => setReviewText(e.target.value)}
+                                                placeholder="What did you think of this book?"
+                                                className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[100px]"
+                                            />
+                                            <div className="flex justify-end space-x-2">
+                                                <button
+                                                    onClick={() => setIsReviewing(false)}
+                                                    className="px-3 py-1.5 text-sm text-neutral-400 hover:text-white"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleSaveReview}
+                                                    className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium"
+                                                >
+                                                    Save Review
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -298,30 +354,43 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack }: any)
                     Friends' Library Status ({friendsWithBook} on Farcaster)
                 </h3>
 
-                {/* Friends List */}
-                <div className="flex flex-wrap gap-3">
+                {/* Friends List & Reviews */}
+                <div className="flex flex-col gap-4">
                     {friendsWithBook > 0 ? (
-                        friendData.filter((f: any) => f.status && f.status !== 'none').slice(0, 5).map((friend: any) => (
-                            <div key={friend.userFid} className="flex items-center space-x-2 bg-neutral-800 px-3 py-1.5 rounded-full border border-neutral-700">
-                                <div className="relative">
-                                    {friend.pfpUrl ? (
-                                        <img
-                                            src={friend.pfpUrl}
-                                            alt={friend.displayName || friend.username || 'User'}
-                                            className="w-6 h-6 rounded-full object-cover border border-neutral-600"
-                                        />
-                                    ) : (
-                                        <div className="w-6 h-6 rounded-full bg-neutral-700 flex items-center justify-center border border-neutral-600">
-                                            <CircleUserRound size={14} className="text-neutral-400" />
+                        friendData.filter((f: any) => f.status && f.status !== 'none').map((friend: any) => (
+                            <div key={friend.userFid} className="bg-neutral-800/50 p-3 rounded-xl border border-neutral-800">
+                                <div className="flex items-center space-x-3 mb-2">
+                                    <div className="relative">
+                                        {friend.pfpUrl ? (
+                                            <img
+                                                src={friend.pfpUrl}
+                                                alt={friend.displayName || friend.username || 'User'}
+                                                className="w-8 h-8 rounded-full object-cover border border-neutral-600"
+                                            />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center border border-neutral-600">
+                                                <CircleUserRound size={16} className="text-neutral-400" />
+                                            </div>
+                                        )}
+                                        <div className="absolute -bottom-1 -right-1 bg-neutral-900 rounded-full p-0.5">
+                                            <StatusIcon status={friend.status} size={12} />
                                         </div>
-                                    )}
-                                    <div className="absolute -bottom-1 -right-1 bg-neutral-900 rounded-full p-0.5">
-                                        <StatusIcon status={friend.status} size={10} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium text-neutral-200">
+                                            {friend.displayName || friend.username || `FID: ${friend.userFid}`}
+                                        </span>
+                                        <span className="text-xs text-neutral-500 capitalize">
+                                            {STATUS_CONFIG[friend.status]?.label || friend.status}
+                                        </span>
                                     </div>
                                 </div>
-                                <span className="text-sm font-medium text-neutral-300">
-                                    {friend.displayName || friend.username || `FID: ${friend.userFid}`}
-                                </span>
+
+                                {friend.review && (
+                                    <div className="ml-11 mt-1 p-3 bg-neutral-900/50 rounded-lg border border-neutral-800/50">
+                                        <p className="text-sm text-neutral-300 italic">"{friend.review}"</p>
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
@@ -593,7 +662,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         setLoadingDetails(false);
     };
 
-    const handleStatusChange = async (newStatus: BookStatus | 'none') => {
+    const handleStatusChange = async (newStatus: BookStatus | 'none', review?: string) => {
         if (!effectiveUser?.fid) {
             showToast("Please sign in", "error");
             return;
@@ -601,42 +670,25 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
         if (!selectedBook) return;
 
-        const bookKey = ('bookKey' in selectedBook ? selectedBook.bookKey : selectedBook.key) as string;
+        // Optimistic update
+        const bookData = { ...selectedBook };
+        if ('userStatus' in bookData) {
+            bookData.userStatus = newStatus !== 'none' ? newStatus : undefined;
+        }
+        setSelectedBook(bookData as any);
 
         setIsSaving(true);
-
         try {
-            // Check if this book is already in the user's library
-            const existingBook = userBooks.find(b => b.bookKey === bookKey);
-
             if (newStatus === 'none') {
-                // Remove from library
-                await deleteUserBook(effectiveUser.fid, bookKey);
-                showToast("Book removed from library", "default");
+                await deleteUserBook(effectiveUser.fid, bookData.key);
+                showToast("Removed from library", "success");
                 setSelectedBook(null); // Redirect to library
             } else {
-                if (existingBook) {
-                    // Update existing book status
-                    await updateBookStatus(effectiveUser.fid, bookKey, newStatus);
-                    showToast(`Status updated to ${STATUS_CONFIG[newStatus].label}`, "success");
-                } else {
-                    // Add new book to library
-                    // Handle both BookData and UserBook property names
-                    const title = (selectedBook as any).title || (selectedBook as any).bookTitle || 'Unknown Title';
-                    const authors = (selectedBook as any).author_name || (selectedBook as any).bookAuthors || ['Unknown Author'];
-                    const coverId = (selectedBook as any).cover_i || (selectedBook as any).coverId;
-
-                    const bookData: BookData = {
-                        key: bookKey,
-                        title: title,
-                        author_name: Array.isArray(authors) ? authors : [authors],
-                        cover_i: coverId,
-                        first_publish_year: (selectedBook as any).first_publish_year
-                    };
-                    await saveBookToFirestore(bookData, effectiveUser.fid, newStatus);
-                    showToast(`Added "${title}" to library!`, "success");
+                await saveBookToFirestore(bookData as BookData, effectiveUser.fid, newStatus, review);
+                showToast(`Updated status to ${STATUS_CONFIG[newStatus].label}`, "success");
+                if (review) {
+                    showToast("Review saved!", "success");
                 }
-                setSelectedBook(null); // Redirect to library
             }
         } catch (error) {
             console.error("Error updating status:", error);
@@ -708,7 +760,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     </button>
 
                     <div className="flex-1 flex items-center justify-start gap-2">
-                        <span className="font-extrabold text-xl tracking-tight text-white">readgoods</span>
+                        <img src="/readgoods-logo.png" alt="readgoods" className="h-8 object-contain" />
                         <img src="/book-icon.png" alt="Book Icon" className="w-16 h-16 object-contain" />
                     </div>
 
