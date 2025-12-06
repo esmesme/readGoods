@@ -865,7 +865,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     await updateCustomBook(newBookKey, { coverUrl });
                 } catch (uploadError) {
                     console.error("Error uploading cover:", uploadError);
-                    showToast("Book added but cover upload failed", "default");
+                    // Don't block the book creation, just warn the user
+                    showToast("Book added but cover upload failed (timeout or error)", "default");
                 }
             }
 
@@ -914,9 +915,14 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             tempReader.readAsDataURL(file);
 
             // Compress immediately
+            setIsCompressing(true);
             compressImage(file)
                 .then(compressedBlob => {
-                    setCoverImage(compressedBlob);
+                    if (compressedBlob && compressedBlob.size > 0) {
+                        setCoverImage(compressedBlob);
+                    } else {
+                        throw new Error("Invalid compressed blob");
+                    }
                     setIsCompressing(false);
                 })
                 .catch(error => {

@@ -114,12 +114,21 @@ export async function uploadBookCover(file: File, bookId: string): Promise<strin
  * @returns The download URL of the uploaded image
  */
 export async function uploadCompressedCover(blob: Blob, bookId: string): Promise<string> {
-    try {
-        const storageRef = ref(storage, `book-covers/${bookId}`);
-        await uploadBytes(storageRef, blob);
-        return await getDownloadURL(storageRef);
-    } catch (error) {
-        console.error('Error uploading compressed cover:', error);
-        throw error;
-    }
+    return new Promise(async (resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+            reject(new Error('Upload timed out after 15 seconds'));
+        }, 15000);
+
+        try {
+            const storageRef = ref(storage, `book-covers/${bookId}`);
+            await uploadBytes(storageRef, blob);
+            const url = await getDownloadURL(storageRef);
+            clearTimeout(timeoutId);
+            resolve(url);
+        } catch (error) {
+            clearTimeout(timeoutId);
+            console.error('Error uploading compressed cover:', error);
+            reject(error);
+        }
+    });
 }
