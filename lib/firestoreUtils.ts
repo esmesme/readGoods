@@ -37,8 +37,13 @@ export async function saveBookToFirestore(
             userFid,
             bookKey: book.key, // Store the full book key here
             status,
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            bookTitle: book.title || 'Untitled',
         };
+
+        if (book.author_name) dataToSave.bookAuthors = book.author_name;
+        if (book.cover_i) dataToSave.coverId = book.cover_i;
+        if (book.coverUrl) dataToSave.coverUrl = book.coverUrl;
 
         if (status === 'current') {
             dataToSave.startedReadingAt = new Date();
