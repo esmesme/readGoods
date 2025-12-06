@@ -575,9 +575,9 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                     </button>
                 </div>
 
-                <h3 className="text-xl font-semibold text-neutral-300 mb-4 flex items-center">
-                    <Users size={20} className="mr-2 text-neutral-400" />
-                    Friends' Library Status ({friendsWithBook} on Farcaster)
+                <h3 className="text-xs font-semibold text-neutral-300 mb-4 flex items-center">
+                    <Users size={14} className="mr-2 text-neutral-400" />
+                    Other Farcaster users who also have this book in their library: ({friendsWithBook} on Farcaster)
                 </h3>
 
                 {/* Friends List & Reviews */}
