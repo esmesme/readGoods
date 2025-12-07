@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc, addDoc, updateDoc, limit } from 'firebase/firestore';
 import { BookData } from './openLibrary';
 import { BookStatus, UserBook } from './types';
 
@@ -10,6 +10,26 @@ const USERS_COLLECTION = 'users';
 // Helper function to get the document ID for a book
 function getBookDocId(book: BookData): string {
     return book.key.replace('/works/', '');
+}
+
+export async function searchUsers(queryStr: string): Promise<any[]> {
+    if (!queryStr) return [];
+    try {
+        const queryLower = queryStr.toLowerCase();
+        const usersRef = collection(db, USERS_COLLECTION);
+        const q = query(
+            usersRef,
+            where('username', '>=', queryLower),
+            where('username', '<=', queryLower + '\uf8ff'),
+            limit(5)
+        );
+
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => doc.data());
+    } catch (e) {
+        console.error("Error searching users", e);
+        return [];
+    }
 }
 
 export async function saveBookToFirestore(
