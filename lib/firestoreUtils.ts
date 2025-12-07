@@ -1,7 +1,7 @@
 import { db } from './firebase';
 import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { BookData } from './openLibrary';
-import { BookStatus, UserBook } from './types';
+import { BookStatus, UserBook, ReadingLog } from './types';
 
 const BOOKS_COLLECTION = 'books';
 const USER_BOOKS_COLLECTION = 'userBooks';
@@ -75,8 +75,16 @@ export async function saveBookToFirestore(
 export async function saveUserProfile(user: { fid: number; username?: string; displayName?: string; pfpUrl?: string }) {
     try {
         const userRef = doc(db, USERS_COLLECTION, user.fid.toString());
+        // Sanitize user object
+        const userData = { ...user };
+        Object.keys(userData).forEach(key => {
+            if ((userData as any)[key] === undefined) {
+                delete (userData as any)[key];
+            }
+        });
+
         await setDoc(userRef, {
-            ...user,
+            ...userData,
             updatedAt: new Date(),
         }, { merge: true });
     } catch (error) {
@@ -173,12 +181,7 @@ export async function deleteUserBook(userFid: number, bookKey: string) {
     }
 }
 
-export interface ReadingLog {
-    id?: string;
-    page: number;
-    thoughts?: string;
-    date: any; // Timestamp
-}
+
 
 export async function addReadingLog(userFid: number, bookKey: string, logData: { page: number; thoughts?: string }) {
     try {
@@ -290,6 +293,32 @@ export async function searchCustomBooks(queryText: string): Promise<BookData[]> 
         return results;
     } catch (error) {
         console.error('Error searching custom books:', error);
+        return [];
+    }
+}
+
+export async function searchUsers(queryText: string): Promise<any[]> {
+    try {
+        const q = query(collection(db, USERS_COLLECTION));
+        const querySnapshot = await getDocs(q);
+        const results: any[] = [];
+        const lowerQuery = queryText.toLowerCase();
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            if ((data.username && data.username.toLowerCase().includes(lowerQuery)) ||
+                (data.displayName && data.displayName.toLowerCase().includes(lowerQuery))) {
+                results.push({
+                    fid: data.fid,
+                    username: data.username,
+                    displayName: data.displayName,
+                    pfpUrl: data.pfpUrl
+                });
+            }
+        });
+        return results;
+    } catch (error) {
+        console.error('Error searching users:', error);
         return [];
     }
 }

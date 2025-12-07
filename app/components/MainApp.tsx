@@ -2,13 +2,33 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { searchBooks, BookData, getBookDetails } from "@/lib/openLibrary";
-import { saveBookToFirestore, getUserBooks, updateBookStatus, getBookUsers, deleteUserBook, addCustomBook, searchCustomBooks, getCustomBookDetails, updateCustomBook, saveUserProfile } from "@/lib/firestoreUtils";
+import {
+    saveBookToFirestore,
+    getUserBooks,
+    updateBookStatus,
+    getBookUsers,
+    deleteUserBook,
+    addCustomBook,
+    searchCustomBooks,
+    getCustomBookDetails,
+    updateCustomBook,
+    saveUserProfile,
+    addReadingLog,
+    getReadingLogs,
+    searchUsers
+} from "@/lib/firestoreUtils";
 
-import { BookStatus, UserBook } from "@/lib/types";
+import { BookStatus, UserBook, ReadingLog } from "@/lib/types";
 import { sdk } from "@farcaster/frame-sdk";
 import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { addReadingLog, getReadingLogs, ReadingLog } from "@/lib/firestoreUtils";
+
+interface FarcasterUser {
+    fid: number;
+    username: string;
+    displayName: string;
+    pfpUrl: string;
+}
 
 // ... (imports remain the same)
 
@@ -30,7 +50,7 @@ const Toast = ({ message, type, onClose }: any) => {
     }
 
     return (
-        <div className={`${baseClasses} ${colorClasses}`} role="alert">
+        <div className={`${baseClasses} ${colorClasses} `} role="alert">
             {type === 'success' && <BookCheck size={20} />}
             {type === 'error' && <X size={20} />}
             <span className="font-semibold">{message}</span>
@@ -48,7 +68,7 @@ const DesiredIcon = ({ size = 24, className = "" }: { size?: number, className?:
         src="/desired-icon.png"
         alt="Desired"
         style={{ width: size * 3, height: size * 3 }}
-        className={`object-contain ${className}`}
+        className={`object - contain ${className} `}
     />
 );
 
@@ -58,7 +78,7 @@ const ReadingIcon = ({ size = 24, className = "" }: { size?: number, className?:
         src="/reading-icon.png"
         alt="Reading"
         style={{ width: size * 3, height: size * 3 }}
-        className={`object-contain ${className}`}
+        className={`object - contain ${className} `}
     />
 );
 
@@ -70,7 +90,7 @@ const CompletedIcon = ({ size = 24, className = "" }: { size?: number, className
         src="/completed-icon.png"
         alt="Completed"
         style={{ width: size * 3, height: size * 3 }}
-        className={`object-contain ${className}`}
+        className={`object - contain ${className} `}
     />
 );
 
@@ -374,7 +394,7 @@ const ReadingProgressGraph = ({ logs, bookTitle, coverUrl }: { logs: ReadingLog[
     );
 };
 
-const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogProgress, currentUserFid }: any) => {
+const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogProgress, currentUserFid, viewedUser, effectiveUser, setViewedUser, isVisiting }: any) => {
     const userStatusConfig = STATUS_CONFIG[userStatus] || STATUS_CONFIG.none;
     const friendsWithBook = friendData.filter((f: any) => f.status && f.status !== 'none').length;
     const [reviewText, setReviewText] = useState("");
@@ -382,31 +402,47 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
     const [readingLogs, setReadingLogs] = useState<ReadingLog[]>([]);
     const [showGraph, setShowGraph] = useState(false);
     const [userReview, setUserReview] = useState("");
+    const [hasLoadedLogs, setHasLoadedLogs] = useState(false);
 
     // Initialize review text from existing data
     useEffect(() => {
-        // Check if current user has a review in friendData
-        const currentUserData = friendData.find((f: any) => f.userFid === currentUserFid);
-        if (currentUserData?.review) {
-            setUserReview(currentUserData.review);
-            setReviewText(currentUserData.review);
+        // If visiting, show the visited user's review if it exists
+        if (isVisiting) {
+            // Find review in friendData which contains the viewed user's data
+            const visitedUserData = friendData.find((f: any) => f.userFid === viewedUser?.fid);
+            if (visitedUserData?.review) {
+                setUserReview(visitedUserData.review);
+            }
+        } else {
+            // Check if current user has a review in friendData
+            const currentUserData = friendData.find((f: any) => f.userFid === currentUserFid);
+            if (currentUserData?.review) {
+                setUserReview(currentUserData.review);
+                setReviewText(currentUserData.review);
+            }
         }
-    }, [friendData, currentUserFid]);
+    }, [friendData, currentUserFid, isVisiting, viewedUser]);
+
 
     // Fetch reading logs
     useEffect(() => {
         const fetchLogs = async () => {
-            if (book.key && (userStatus === 'completed' || userStatus === 'current')) {
-                // We need the user's FID. Assuming it's passed or available in context?
-                // It's not passed directly to BookCard. We might need to pass effectiveUser or similar.
-                // Let's check MainApp usage. effectiveUser is available there.
-                // We should pass effectiveUser to BookCard.
+            // If we already have logs passed in book (which we do for selectedBook in MainApp), use them
+            if (book.logs && book.logs.length > 0) {
+                setReadingLogs(book.logs);
+                setHasLoadedLogs(true);
+                return;
+            }
+
+            // Otherwise fetch if we are visiting and want to show graph
+            if (isVisiting && book.key && (userStatus === 'completed' || userStatus === 'current')) {
+                const logs = await getReadingLogs(viewedUser.fid, book.key);
+                setReadingLogs(logs);
+                setHasLoadedLogs(true);
             }
         };
-        // fetchLogs(); 
-        // Actually, let's pass logs from MainApp or pass effectiveUser.
-        // Passing effectiveUser is better.
-    }, [book.key, userStatus]);
+        fetchLogs();
+    }, [book.key, userStatus, isVisiting, viewedUser, book.logs]);
 
     const handleSaveReview = () => {
         onStatusChange('completed', reviewText);
@@ -478,91 +514,126 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                     )}
 
                     {book.description && (
-                        <p className="text-neutral-300 mb-6 line-clamp-6 text-sm leading-relaxed">
-                            {typeof book.description === 'string' ? book.description : book.description.value}
-                        </p>
+                        <div className="text-neutral-300 mb-6 text-sm leading-relaxed">
+                            <p className="line-clamp-6 mb-4">{book.description}</p>
+                            {/* Actions - Only show if NOT visiting */}
+                            {!isVisiting && (
+                                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                                    {Object.keys(STATUS_CONFIG).filter(k => k !== 'none').map((statusKey) => {
+                                        const config = STATUS_CONFIG[statusKey];
+                                        const Icon = config.icon;
+                                        const isSelected = userStatus === statusKey;
+                                        return (
+                                            <button
+                                                key={statusKey}
+                                                onClick={() => onStatusChange(statusKey)}
+                                                className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all whitespace-nowrap ${isSelected
+                                                    ? `${config.bgColor} ${config.color} ${config.borderColor}`
+                                                    : 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:bg-neutral-700'
+                                                    }`}
+                                            >
+                                                <Icon size={18} />
+                                                <span>{config.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Reading Graph Logic */}
+                            {userStatus === 'completed' && (
+                                <div className="mb-6">
+                                    <button
+                                        onClick={() => setShowGraph(!showGraph)}
+                                        className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
+                                    >
+                                        <LineChartIcon size={18} />
+                                        <span>{showGraph ? 'Hide Reading Graph' : 'View Reading Graph'}</span>
+                                    </button>
+                                    {showGraph && (
+                                        <div className="mt-4 h-64 w-full">
+                                            {readingLogs.length > 0 ? (
+                                                <ReadingProgressGraph logs={readingLogs} bookTitle={book.title || book.bookTitle} coverUrl={book.coverUrl} />
+                                            ) : (
+                                                <p className="text-neutral-500 italic mt-4">No reading logs recorded yet.</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Log Progress - Only if Current and NOT visiting */}
+                            {!isVisiting && userStatus === 'current' && (
+                                <div className="mb-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-800">
+                                    <h4 className="text-white font-semibold mb-2 flex items-center">
+                                        <BookOpen size={18} className="mr-2 text-blue-400" />
+                                        Update Progress
+                                    </h4>
+                                    <button
+                                        onClick={() => onLogProgress(book)}
+                                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                                    >
+                                        Log Pages Read
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* User Review */}
+                            {(userStatus === 'completed' || isVisiting) && (
+                                <div className="mb-6">
+                                    <h4 className="text-white font-semibold mb-2">My Review</h4>
+                                    {isReviewing && !isVisiting ? ( // Only allow editing if not visiting
+                                        <div className="space-y-3">
+                                            <textarea
+                                                value={reviewText}
+                                                onChange={(e) => setReviewText(e.target.value)}
+                                                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white placeholder-neutral-500 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                rows={4}
+                                                placeholder="What did you think?"
+                                            />
+                                            <div className="flex justify-end space-x-2">
+                                                <button
+                                                    onClick={() => setIsReviewing(false)}
+                                                    className="px-4 py-2 text-neutral-400 hover:text-white"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleSaveReview}
+                                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                                                >
+                                                    Save Review
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="group relative">
+                                            {userReview ? (
+                                                <div className="p-4 bg-neutral-800/50 rounded-lg border border-neutral-800 italic text-neutral-300">
+                                                    "{userReview}"
+                                                </div>
+                                            ) : (
+                                                <p className="text-neutral-500 italic">No review written.</p>
+                                            )}
+                                            {!isVisiting && ( // Only allow editing if not visiting
+                                                <button
+                                                    onClick={() => setIsReviewing(true)}
+                                                    className="mt-2 text-sm text-blue-400 hover:text-blue-300"
+                                                >
+                                                    {userReview ? 'Edit Review' : 'Write a Review'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     {/* User Status Display */}
-                    {userStatus === 'current' ? (
-                        <div className="mb-6">
-                            <button
-                                onClick={() => onLogProgress(book)}
-                                className="w-full flex items-center justify-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-4 py-2 rounded-lg transition-colors border border-neutral-700"
-                            >
-                                <BookOpen size={16} />
-                                <span className="text-sm font-medium">Log Pages</span>
-                            </button>
-                        </div>
-                    ) : userStatus === 'completed' ? (
-                        <>
-                            {/* Review Section - No box wrapper */}
-                            <div className="mb-6">
-                                {userReview && !isReviewing ? (
-                                    <div className="bg-neutral-800/50 p-4 rounded-xl border border-neutral-800">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h4 className="text-sm font-medium text-neutral-400">Your Review</h4>
-                                            <button
-                                                onClick={() => setIsReviewing(true)}
-                                                className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-                                            >
-                                                Edit
-                                            </button>
-                                        </div>
-                                        <p className="text-sm text-neutral-300 italic">"{userReview}"</p>
-                                    </div>
-                                ) : !isReviewing ? (
-                                    <button
-                                        onClick={() => setIsReviewing(true)}
-                                        className="text-sm bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors w-full text-left"
-                                    >
-                                        Write a review...
-                                    </button>
-                                ) : (
-                                    <div className="space-y-2">
-                                        <textarea
-                                            value={reviewText}
-                                            onChange={(e) => setReviewText(e.target.value)}
-                                            placeholder="What did you think of this book?"
-                                            className="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[100px]"
-                                        />
-                                        <div className="flex justify-end space-x-2">
-                                            <button
-                                                onClick={() => {
-                                                    setIsReviewing(false);
-                                                    setReviewText(userReview);
-                                                }}
-                                                className="px-3 py-1.5 text-sm text-neutral-400 hover:text-white"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                onClick={handleSaveReview}
-                                                className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium"
-                                            >
-                                                Save Review
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Generate Progress Graph Button - Separate element */}
-                            <div className="mb-6">
-                                {!showGraph ? (
-                                    <button
-                                        onClick={() => setShowGraph(true)}
-                                        className="w-full flex items-center justify-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-4 py-2 rounded-lg transition-colors border border-neutral-700"
-                                    >
-                                        <LineChartIcon size={16} />
-                                        <span className="text-sm font-medium">Generate Progress Graph</span>
-                                    </button>
-                                ) : (
-                                    <ReadingProgressGraph logs={book.logs || []} bookTitle={book.title || book.bookTitle} coverUrl={book.coverUrl} />
-                                )}
-                            </div>
-                        </>
-                    ) : userStatus && userStatus !== 'none' ? (
+                    {/* This section is largely replaced by the new logic above */}
+                    {/* Keeping the original structure for other statuses if needed, but review/graph/log pages are now handled */}
+                    {userStatus && userStatus !== 'none' && !isVisiting && ( // Only show if not visiting
                         <div className={`flex flex-col space-y-4 p-4 rounded-xl border-l-4 ${userStatusConfig.color} ${userStatusConfig.bgColor} ${userStatusConfig.borderColor} shadow-sm mb-6`}>
                             <div className="flex items-center space-x-2">
                                 <CircleUserRound size={24} className={userStatusConfig.color} />
@@ -571,43 +642,45 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                                 </span>
                             </div>
                         </div>
-                    ) : null}
+                    )}
                 </div>
             </div>
 
             {/* Footer and Friends Section */}
             <div className="mt-8 pt-6 border-t border-neutral-800">
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-4 mb-6 justify-center md:justify-start">
-                    {Object.keys(STATUS_CONFIG).filter(s => s !== 'none').map((status) => (
-                        <StatusIcon
-                            key={status}
-                            status={status}
-                            size={24}
-                            isButton={true}
-                            onClick={() => onStatusChange(status)}
-                            className={userStatus === status ? 'ring-2 ring-neutral-500' : ''}
-                        />
-                    ))}
-                    {userStatus && userStatus !== 'none' && (
+                {/* Action Buttons - Only show if NOT visiting */}
+                {!isVisiting && (
+                    <div className="flex flex-wrap gap-4 mb-6 justify-center md:justify-start">
+                        {Object.keys(STATUS_CONFIG).filter(s => s !== 'none').map((status) => (
+                            <StatusIcon
+                                key={status}
+                                status={status}
+                                size={24}
+                                isButton={true}
+                                onClick={() => onStatusChange(status)}
+                                className={userStatus === status ? 'ring-2 ring-neutral-500' : ''}
+                            />
+                        ))}
+                        {userStatus && userStatus !== 'none' && (
+                            <button
+                                onClick={() => onStatusChange('none')}
+                                className="flex items-center space-x-2 p-2 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 transition-all duration-200"
+                                title="Remove from your library"
+                            >
+                                <Trash2 size={24} />
+                                <span className="font-semibold">Remove</span>
+                            </button>
+                        )}
                         <button
-                            onClick={() => onStatusChange('none')}
-                            className="flex items-center space-x-2 p-2 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 transition-all duration-200"
-                            title="Remove from your library"
+                            onClick={handleShare}
+                            className="flex items-center space-x-2 p-2 rounded-lg bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-all duration-200"
+                            title="Share to Farcaster"
                         >
-                            <Trash2 size={24} />
-                            <span className="font-semibold">Remove</span>
+                            <Share size={24} />
+                            <span className="font-semibold">Share</span>
                         </button>
-                    )}
-                    <button
-                        onClick={handleShare}
-                        className="flex items-center space-x-2 p-2 rounded-lg bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-all duration-200"
-                        title="Share to Farcaster"
-                    >
-                        <Share size={24} />
-                        <span className="font-semibold">Share</span>
-                    </button>
-                </div>
+                    </div>
+                )}
 
                 <h3 className="text-xs font-semibold text-neutral-300 mb-4 flex items-center">
                     <Users size={14} className="mr-2 text-neutral-400" />
@@ -766,6 +839,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
     // Fallback user for development/testing if not in Farcaster frame
     const effectiveUser = farcasterUser?.fid ? farcasterUser : { fid: 999999, username: 'dev_user' };
+    const [viewedUser, setViewedUser] = useState<FarcasterUser | null>(null); // New state for viewed user
+    const isVisiting = viewedUser?.fid !== effectiveUser?.fid && viewedUser?.fid !== undefined; // Determine if visiting another user's library
 
     const showToast = (message: string, type: 'success' | 'error' | 'default' = 'success') => {
         setToast({ message, type });
@@ -784,13 +859,18 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             setIsSearching(true);
             try {
                 // Search both Open Library and Custom Books in parallel
-                const [olResults, customResults] = await Promise.all([
+                const [olResults, customResults, userResults] = await Promise.all([
                     searchBooks(searchQuery),
-                    searchCustomBooks(searchQuery)
+                    searchCustomBooks(searchQuery),
+                    searchUsers(searchQuery) // Search for users
                 ]);
 
                 // Merge results, putting custom books first or mixed? Let's put custom first for visibility
-                setSearchResults([...customResults, ...olResults]);
+                // Add a 'type' property to distinguish between books and users
+                const formattedUserResults = userResults.map(user => ({ ...user, type: 'user' }));
+                const formattedBookResults = [...customResults, ...olResults].map(book => ({ ...book, type: 'book' }));
+
+                setSearchResults([...formattedUserResults, ...formattedBookResults]);
                 setShowDropdown(true);
             } catch (error) {
                 console.error("Search error:", error);
@@ -823,19 +903,22 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
     // Real-time listener for user's books
     useEffect(() => {
-        if (!effectiveUser?.fid) return;
+        const userToFetchFid = viewedUser?.fid || effectiveUser?.fid;
+        if (!userToFetchFid) return;
 
-        // Save user profile
-        saveUserProfile({
-            fid: effectiveUser.fid,
-            username: effectiveUser.username,
-            displayName: effectiveUser.displayName,
-            pfpUrl: effectiveUser.pfpUrl
-        });
+        // Save user profile (only for the effective user, not viewed user)
+        if (!viewedUser) { // Only save profile if we are viewing our own library
+            saveUserProfile({
+                fid: effectiveUser.fid,
+                username: effectiveUser.username,
+                displayName: effectiveUser.displayName,
+                pfpUrl: effectiveUser.pfpUrl
+            });
+        }
 
         const q = query(
             collection(db, 'userBooks'),
-            where('userFid', '==', effectiveUser.fid)
+            where('userFid', '==', userToFetchFid)
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -850,7 +933,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     // Update the selectedBook with the new status from Firestore
                     setSelectedBook(prev => {
                         if (!prev) return null;
-                        return { ...prev, userStatus: updatedBook.status };
+                        return { ...prev, userStatus: updatedBook.status, logs: updatedBook.logs }; // Also update logs
                     });
                 } else {
                     // If book was removed from library, clear status
@@ -1109,6 +1192,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     isSaving={isSaving}
                     onLogProgress={handleLogProgress}
                     currentUserFid={effectiveUser?.fid}
+                    isVisiting={viewedUser?.fid !== effectiveUser?.fid}
+                    viewedUser={viewedUser}
                 />
 
                 <ReadingLogModal
@@ -1322,89 +1407,163 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             <div className="max-w-6xl mx-auto p-4 md:p-8">
 
 
-                {/* Library */}
-                <div>
-                    {/* Log Pages Button */}
-                    <div className="relative mb-12">
-                        <button
-                            onClick={handleHomeLogClick}
-                            className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors border border-neutral-700"
-                        >
-                            <BookOpen size={16} />
-                            <span className="text-sm font-medium">Log Pages</span>
-                        </button>
+                {/* Content: Visiting vs My Library */}
+                {viewedUser && viewedUser.fid !== effectiveUser?.fid ? (
+                    // --- VISITING VIEW ---
+                    <div className="space-y-12">
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center space-x-4">
+                                {viewedUser.pfpUrl ? (
+                                    <img src={viewedUser.pfpUrl} alt={viewedUser.username} className="w-16 h-16 rounded-full border-2 border-neutral-700" />
+                                ) : (
+                                    <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center border-2 border-neutral-700">
+                                        <CircleUserRound size={32} className="text-neutral-500" />
+                                    </div>
+                                )}
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">{viewedUser.displayName || viewedUser.username}'s Library</h2>
+                                    <p className="text-neutral-400">Viewing user {viewedUser.username}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setViewedUser(effectiveUser)}
+                                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg border border-neutral-700 transition-colors"
+                            >
+                                Back to My Library
+                            </button>
+                        </div>
 
-                        {showLogBookDropdown && (
-                            <div className="absolute top-full left-0 mt-2 w-64 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 py-1">
-                                {userBooks.filter(b => b.status === 'current').map(book => (
-                                    <button
-                                        key={book.bookKey}
-                                        onClick={() => handleLogProgress(book)}
-                                        className="w-full text-left px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors truncate"
+                        {/* Sections */}
+                        {['current', 'completed', 'desired'].map((status) => {
+                            const statusBooks = userBooks.filter(b => b.status === status);
+                            if (statusBooks.length === 0) return null;
+
+                            const config = STATUS_CONFIG[status];
+                            const Icon = config.icon;
+
+                            return (
+                                <div key={status} className="space-y-4">
+                                    <div className="flex items-center space-x-2 border-b border-neutral-800 pb-2">
+                                        <Icon size={20} className={config.color} />
+                                        <h3 className="text-xl font-semibold text-white capitalize">{config.label}</h3>
+                                        <span className="bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded-full text-xs">{statusBooks.length}</span>
+                                    </div>
+
+                                    <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
+                                        {statusBooks.map(book => (
+                                            <div
+                                                key={book.bookKey}
+                                                onClick={() => handleBookClick(book)}
+                                                className="flex-shrink-0 w-32 cursor-pointer group"
+                                            >
+                                                <div className="relative aspect-[2/3] mb-2 overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-all">
+                                                    {book.coverUrl || book.coverId ? (
+                                                        <img src={book.coverUrl || `https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`} alt={book.bookTitle} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
+                                                            <img src="/book-icon.png" className="w-8 h-8 opacity-50" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <p className="text-sm font-medium text-white truncate group-hover:text-neutral-300">{book.bookTitle}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {userBooks.length === 0 && (
+                            <div className="text-center py-20 text-neutral-500">
+                                This user hasn't added any books yet.
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    // --- MY LIBRARY VIEW (Existing) ---
+                    <div>
+                        {/* Log Pages Button */}
+                        <div className="relative mb-12">
+                            <button
+                                onClick={handleHomeLogClick}
+                                className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors border border-neutral-700"
+                            >
+                                <BookOpen size={16} />
+                                <span className="text-sm font-medium">Log Pages</span>
+                            </button>
+
+                            {showLogBookDropdown && (
+                                <div className="absolute top-full left-0 mt-2 w-64 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 py-1">
+                                    {userBooks.filter(b => b.status === 'current').map(book => (
+                                        <button
+                                            key={book.bookKey}
+                                            onClick={() => handleLogProgress(book)}
+                                            className="w-full text-left px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors truncate"
+                                        >
+                                            {book.bookTitle}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                            <div>
+                                <h2 className="text-2xl font-bold text-white tracking-tight">LIBRARY</h2>
+                                <p className="text-neutral-400 mt-1">{getLibraryTagline()}</p>
+                            </div>
+                        </div>
+
+                        {filteredBooks.length === 0 ? (
+                            <div className="text-center py-20 bg-neutral-900 rounded-xl border border-dashed border-neutral-800">
+                                <div className="flex justify-center mb-4">
+                                    <img src="/book-icon.png" alt="Empty Library" className="w-32 h-32 object-contain opacity-80" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-white mb-2">{getEmptyStateMessage()}</h3>
+                                <p className="text-neutral-400">Search for books to add them to your collection</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                {filteredBooks.map((book, idx) => (
+                                    <div
+                                        key={idx}
+                                        onClick={() => handleBookClick(book)}
+                                        className="cursor-pointer group relative flex flex-col"
                                     >
-                                        {book.bookTitle}
-                                    </button>
+                                        <div className="relative aspect-[2/3] mb-3 overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
+                                            {book.coverId ? (
+                                                <img
+                                                    src={`https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`}
+                                                    alt={book.bookTitle}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-neutral-900 flex items-center justify-center text-neutral-600">
+                                                    <img src="/book-icon.png" alt="No Cover" className="w-12 h-12 object-contain opacity-50" />
+                                                </div>
+                                            )}
+                                            {/* Status Badge */}
+                                            <div className="absolute top-2 right-2">
+                                                <div className={`p-1.5 rounded-full bg-neutral-900/90 backdrop-blur-sm shadow-sm ${STATUS_CONFIG[book.status]?.color}`}>
+                                                    {(() => {
+                                                        const Icon = STATUS_CONFIG[book.status]?.icon;
+                                                        return Icon ? <Icon size={14} /> : null;
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <h3 className="font-bold text-white leading-tight mb-1 line-clamp-2 group-hover:text-neutral-300 transition-colors">{book.bookTitle}</h3>
+                                        {book.bookAuthors && (
+                                            <p className="text-sm text-neutral-400 line-clamp-1">
+                                                {Array.isArray(book.bookAuthors) ? book.bookAuthors[0] : book.bookAuthors}
+                                            </p>
+                                        )}
+                                    </div>
                                 ))}
                             </div>
                         )}
                     </div>
-
-                    <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                        <div>
-                            <h2 className="text-2xl font-bold text-white tracking-tight">LIBRARY</h2>
-                            <p className="text-neutral-400 mt-1">{getLibraryTagline()}</p>
-                        </div>
-                    </div>
-
-                    {filteredBooks.length === 0 ? (
-                        <div className="text-center py-20 bg-neutral-900 rounded-xl border border-dashed border-neutral-800">
-                            <div className="flex justify-center mb-4">
-                                <img src="/book-icon.png" alt="Empty Library" className="w-32 h-32 object-contain opacity-80" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">{getEmptyStateMessage()}</h3>
-                            <p className="text-neutral-400">Search for books to add them to your collection</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                            {filteredBooks.map((book, idx) => (
-                                <div
-                                    key={idx}
-                                    onClick={() => handleBookClick(book)}
-                                    className="cursor-pointer group relative flex flex-col"
-                                >
-                                    <div className="relative aspect-[2/3] mb-3 overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
-                                        {book.coverId ? (
-                                            <img
-                                                src={`https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`}
-                                                alt={book.bookTitle}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full bg-neutral-900 flex items-center justify-center text-neutral-600">
-                                                <img src="/book-icon.png" alt="No Cover" className="w-12 h-12 object-contain opacity-50" />
-                                            </div>
-                                        )}
-                                        {/* Status Badge */}
-                                        <div className="absolute top-2 right-2">
-                                            <div className={`p-1.5 rounded-full bg-neutral-900/90 backdrop-blur-sm shadow-sm ${STATUS_CONFIG[book.status]?.color}`}>
-                                                {(() => {
-                                                    const Icon = STATUS_CONFIG[book.status]?.icon;
-                                                    return Icon ? <Icon size={14} /> : null;
-                                                })()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <h3 className="font-bold text-white leading-tight mb-1 line-clamp-2 group-hover:text-neutral-300 transition-colors">{book.bookTitle}</h3>
-                                    {book.bookAuthors && (
-                                        <p className="text-sm text-neutral-400 line-clamp-1">
-                                            {Array.isArray(book.bookAuthors) ? book.bookAuthors[0] : book.bookAuthors}
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                )}
             </div>
 
             {/* Manual Entry Modal */}
