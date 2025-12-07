@@ -77,20 +77,18 @@ const ReadingIcon = ({ size = 24, className = "" }: { size?: number, className?:
     <img
         src="/reading-icon.png"
         alt="Reading"
-        style={{ width: size * 3, height: size * 3 }}
-        className={`object - contain ${className} `}
+        style={{ width: size * 1.5, height: size * 1.5 }}
+        className={`object-contain ${className}`}
     />
 );
-
-
 
 // Custom icon component for "completed" status
 const CompletedIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
     <img
         src="/completed-icon.png"
         alt="Completed"
-        style={{ width: size * 3, height: size * 3 }}
-        className={`object - contain ${className} `}
+        style={{ width: size * 1.5, height: size * 1.5 }}
+        className={`object-contain ${className}`}
     />
 );
 
@@ -693,38 +691,51 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                         friendData.filter((f: any) => f.status && f.status !== 'none').map((friend: any) => (
                             <div key={friend.userFid} className="bg-neutral-800/50 p-3 rounded-xl border border-neutral-800">
                                 <div className="flex items-center space-x-3 mb-2">
-                                    <div className="relative">
-                                        {friend.pfpUrl ? (
-                                            <img
-                                                src={friend.pfpUrl}
-                                                alt={friend.displayName || friend.username || 'User'}
-                                                className="w-8 h-8 rounded-full object-cover border border-neutral-600"
-                                            />
-                                        ) : (
-                                            <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center border border-neutral-600">
-                                                <CircleUserRound size={16} className="text-neutral-400" />
+                                    <button
+                                        onClick={() => {
+                                            setViewedUser({
+                                                fid: friend.userFid,
+                                                username: friend.username,
+                                                displayName: friend.displayName,
+                                                pfpUrl: friend.pfpUrl
+                                            });
+                                            onBack(); // Close current book card
+                                        }}
+                                        className="flex items-center space-x-3 hover:opacity-80 transition-opacity text-left group"
+                                    >
+                                        <div className="relative">
+                                            {friend.pfpUrl ? (
+                                                <img
+                                                    src={friend.pfpUrl}
+                                                    alt={friend.displayName || friend.username || 'User'}
+                                                    className="w-8 h-8 rounded-full object-cover border border-neutral-600 group-hover:border-blue-400 transition-colors"
+                                                />
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center border border-neutral-600 group-hover:border-blue-400 transition-colors">
+                                                    <CircleUserRound size={16} className="text-neutral-400" />
+                                                </div>
+                                            )}
+                                            <div className="absolute -bottom-1 -right-1 bg-neutral-900 rounded-full p-0.5">
+                                                {(() => {
+                                                    const config = STATUS_CONFIG[friend.status];
+                                                    const Icon = config?.icon;
+                                                    return Icon ? (
+                                                        <div className={`rounded-full p-1 ${config.bgColor} ${config.color}`}>
+                                                            <Icon size={10} />
+                                                        </div>
+                                                    ) : null;
+                                                })()}
                                             </div>
-                                        )}
-                                        <div className="absolute -bottom-1 -right-1 bg-neutral-900 rounded-full p-0.5">
-                                            {(() => {
-                                                const config = STATUS_CONFIG[friend.status];
-                                                const Icon = config?.icon;
-                                                return Icon ? (
-                                                    <div className={`rounded-full p-1 ${config.bgColor} ${config.color}`}>
-                                                        <Icon size={10} />
-                                                    </div>
-                                                ) : null;
-                                            })()}
                                         </div>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-medium text-neutral-200">
-                                            {friend.displayName || friend.username || `FID: ${friend.userFid}`}
-                                        </span>
-                                        <span className="text-xs text-neutral-500 capitalize">
-                                            {STATUS_CONFIG[friend.status]?.label || friend.status}
-                                        </span>
-                                    </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium text-neutral-200 group-hover:text-blue-400 transition-colors">
+                                                {friend.displayName || friend.username || `FID: ${friend.userFid}`}
+                                            </span>
+                                            <span className="text-xs text-neutral-500 capitalize">
+                                                {STATUS_CONFIG[friend.status]?.label || friend.status}
+                                            </span>
+                                        </div>
+                                    </button>
                                 </div>
 
                                 {friend.review && (
