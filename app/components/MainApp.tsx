@@ -1324,43 +1324,36 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
                 {/* Library */}
                 <div>
+                    {/* Log Pages Button */}
+                    <div className="relative mb-12">
+                        <button
+                            onClick={handleHomeLogClick}
+                            className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors border border-neutral-700"
+                        >
+                            <BookOpen size={16} />
+                            <span className="text-sm font-medium">Log Pages</span>
+                        </button>
+
+                        {showLogBookDropdown && (
+                            <div className="absolute top-full left-0 mt-2 w-64 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 py-1">
+                                {userBooks.filter(b => b.status === 'current').map(book => (
+                                    <button
+                                        key={book.bookKey}
+                                        onClick={() => handleLogProgress(book)}
+                                        className="w-full text-left px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors truncate"
+                                    >
+                                        {book.bookTitle}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
                         <div>
                             <h2 className="text-2xl font-bold text-white tracking-tight">LIBRARY</h2>
                             <p className="text-neutral-400 mt-1">{getLibraryTagline()}</p>
-
-                            {/* Log Pages Button */}
-                            <div className="relative mt-3">
-                                <button
-                                    onClick={handleHomeLogClick}
-                                    className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors border border-neutral-700"
-                                >
-                                    <BookOpen size={16} />
-                                    <span className="text-sm font-medium">Log Pages</span>
-                                </button>
-
-                                {showLogBookDropdown && (
-                                    <div className="absolute top-full left-0 mt-2 w-64 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 py-1">
-                                        {userBooks.filter(b => b.status === 'current').map(book => (
-                                            <button
-                                                key={book.bookKey}
-                                                onClick={() => handleLogProgress(book)}
-                                                className="w-full text-left px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors truncate"
-                                            >
-                                                {book.bookTitle}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
                         </div>
-                        <button
-                            onClick={() => shareToFarcaster("i just read X pages of my book today and it has me feeling....")}
-                            className="flex items-center justify-center space-x-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition-colors text-sm font-medium w-full md:w-auto"
-                        >
-                            <Share size={16} />
-                            <span>Tell others what you read today</span>
-                        </button>
                     </div>
 
                     {filteredBooks.length === 0 ? (
