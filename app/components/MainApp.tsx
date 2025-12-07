@@ -599,7 +599,15 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                                             </div>
                                         )}
                                         <div className="absolute -bottom-1 -right-1 bg-neutral-900 rounded-full p-0.5">
-                                            <StatusIcon status={friend.status} size={12} />
+                                            {(() => {
+                                                const config = STATUS_CONFIG[friend.status];
+                                                const Icon = config?.icon;
+                                                return Icon ? (
+                                                    <div className={`rounded-full p-1 ${config.bgColor} ${config.color}`}>
+                                                        <Icon size={10} />
+                                                    </div>
+                                                ) : null;
+                                            })()}
                                         </div>
                                     </div>
                                     <div className="flex flex-col">
