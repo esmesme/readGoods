@@ -1267,7 +1267,63 @@ export default function MainApp({ farcasterUser }: { farcasterUser: any }) {
                     </div>
                 </div>
 
+                {/* Mobile Search */}
+                <div className="md:hidden px-4 pb-4">
+                    <div className="relative">
+                        <input
+                            ref={mobileInputRef}
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => searchQuery.trim().length > 0 && setShowDropdown(true)}
+                            placeholder="Search books or users..."
+                            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-500 rounded-lg focus:ring-2 focus:ring-neutral-600 focus:border-transparent outline-none transition-all"
+                        />
+                        {/* Mobile Dropdown Results */}
+                        {showDropdown && searchQuery.trim().length > 0 && (
+                            <div
+                                ref={mobileDropdownRef}
+                                className="absolute top-full mt-2 w-full bg-neutral-900 border border-neutral-800 rounded-lg shadow-2xl max-h-60 overflow-y-auto z-50 left-0"
+                            >
+                                <button
+                                    onMouseDown={(e) => { e.preventDefault(); setShowManualEntry(true); }}
+                                    className="w-full p-3 bg-neutral-800/80 hover:bg-neutral-800 text-blue-400 text-xs font-medium text-center border-b border-neutral-700 transition-colors sticky top-0 backdrop-blur-sm z-10"
+                                >
+                                    Can't find it? Add manually.
+                                </button>
 
+                                {searchResults.map((book) => (
+                                    <button
+                                        key={book.key}
+                                        onClick={() => handleSearchResultClick(book)}
+                                        className="w-full p-3 hover:bg-neutral-800 flex gap-3 items-start text-left border-b border-neutral-800 last:border-b-0 transition-colors"
+                                    >
+                                        {book.cover_i && (
+                                            <img
+                                                src={`https://covers.openlibrary.org/b/id/${book.cover_i}-S.jpg`}
+                                                alt={book.title}
+                                                className="w-10 h-14 object-cover rounded"
+                                            />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-semibold text-white text-sm truncate">{book.title}</div>
+                                            {book.author_name && (
+                                                <div className="text-xs text-neutral-400 truncate">
+                                                    {book.author_name.join(", ")}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </button>
+                                ))}
+                                {searchResults.length === 0 && !isSearching && (
+                                    <div className="p-4 text-center text-neutral-500 text-sm">
+                                        No results.
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
 
