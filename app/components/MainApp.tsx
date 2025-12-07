@@ -67,7 +67,7 @@ const DesiredIcon = ({ size = 24, className = "" }: { size?: number, className?:
     <img
         src="/desired-icon.png"
         alt="Desired"
-        style={{ width: size * 3, height: size * 3 }}
+        style={{ width: size * 2.2, height: size * 2.2 }}
         className={`object - contain ${className} `}
     />
 );
@@ -77,7 +77,7 @@ const ReadingIcon = ({ size = 24, className = "" }: { size?: number, className?:
     <img
         src="/reading-icon.png"
         alt="Reading"
-        style={{ width: size * 3, height: size * 3 }}
+        style={{ width: size * 2.2, height: size * 2.2 }}
         className={`object-contain ${className}`}
     />
 );
@@ -87,8 +87,15 @@ const CompletedIcon = ({ size = 24, className = "" }: { size?: number, className
     <img
         src="/completed-icon.png"
         alt="Completed"
-        style={{ width: size * 3, height: size * 3 }}
+        style={{ width: size * 2.2, height: size * 2.2 }}
         className={`object-contain ${className}`}
+    />
+);
+
+const AbandonedIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
+    <Ban
+        size={size * 2.2}
+        className={className}
     />
 );
 
@@ -115,7 +122,7 @@ const STATUS_CONFIG: Record<string, { icon: any; label: string; color: string; b
         borderColor: "border-blue-700"
     },
     abandoned: {
-        icon: Ban,
+        icon: AbandonedIcon,
         label: "Abandoned",
         color: "text-fuchsia-400",
         bgColor: "bg-fuchsia-900/30",
@@ -128,6 +135,44 @@ const STATUS_CONFIG: Record<string, { icon: any; label: string; color: string; b
         bgColor: "bg-neutral-800",
         borderColor: "border-neutral-700"
     }
+};
+
+const StatusBookSection = ({ status, books, onBookClick }: { status: string, books: any[], onBookClick: (book: any) => void }) => {
+    if (books.length === 0) return null;
+
+    const config = STATUS_CONFIG[status];
+    const Icon = config.icon;
+
+    return (
+        <div key={status} className="space-y-4 mb-8">
+            <div className="flex items-center space-x-2 border-b border-neutral-800 pb-2">
+                <Icon size={20} className={config.color} />
+                <h3 className="text-xl font-semibold text-white capitalize">{config.label}</h3>
+                <span className="bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded-full text-xs">{books.length}</span>
+            </div>
+
+            <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
+                {books.map(book => (
+                    <div
+                        key={book.bookKey}
+                        onClick={() => onBookClick(book)}
+                        className="flex-shrink-0 w-32 cursor-pointer group"
+                    >
+                        <div className="relative aspect-[2/3] mb-2 overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-all">
+                            {book.coverUrl || book.coverId || book.cover_i ? (
+                                <img src={book.coverUrl || `https://covers.openlibrary.org/b/id/${book.coverId || book.cover_i}-L.jpg`} alt={book.bookTitle || book.title} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
+                                    <img src="/book-icon.png" className="w-8 h-8 opacity-50" />
+                                </div>
+                            )}
+                        </div>
+                        <p className="text-sm font-medium text-white truncate group-hover:text-neutral-300">{book.bookTitle || book.title}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 };
 
 interface MainAppProps {
@@ -697,7 +742,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                                                     className="w-8 h-8 rounded-full object-cover border border-neutral-600 group-hover:border-blue-400 transition-colors"
                                                 />
                                             ) : (
-                                                <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center border border-neutral-600 group-hover:border-blue-400 transition-colors">
+                                                <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center border-2 border-neutral-700 group-hover:border-blue-400 transition-colors">
                                                     <CircleUserRound size={16} className="text-neutral-400" />
                                                 </div>
                                             )}
@@ -1432,44 +1477,14 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         </div>
 
                         {/* Sections */}
-                        {['current', 'completed', 'desired'].map((status) => {
-                            const statusBooks = userBooks.filter(b => b.status === status);
-                            if (statusBooks.length === 0) return null;
-
-                            const config = STATUS_CONFIG[status];
-                            const Icon = config.icon;
-
-                            return (
-                                <div key={status} className="space-y-4">
-                                    <div className="flex items-center space-x-2 border-b border-neutral-800 pb-2">
-                                        <Icon size={20} className={config.color} />
-                                        <h3 className="text-xl font-semibold text-white capitalize">{config.label}</h3>
-                                        <span className="bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded-full text-xs">{statusBooks.length}</span>
-                                    </div>
-
-                                    <div className="flex overflow-x-auto space-x-6 pb-4 scrollbar-hide">
-                                        {statusBooks.map(book => (
-                                            <div
-                                                key={book.bookKey}
-                                                onClick={() => handleBookClick(book)}
-                                                className="flex-shrink-0 w-32 cursor-pointer group"
-                                            >
-                                                <div className="relative aspect-[2/3] mb-2 overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-all">
-                                                    {book.coverUrl || book.coverId ? (
-                                                        <img src={book.coverUrl || `https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`} alt={book.bookTitle} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
-                                                            <img src="/book-icon.png" className="w-8 h-8 opacity-50" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <p className="text-sm font-medium text-white truncate group-hover:text-neutral-300">{book.bookTitle}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })}
+                        {['current', 'completed', 'desired', 'abandoned'].map((status) => (
+                            <StatusBookSection
+                                key={status}
+                                status={status}
+                                books={userBooks.filter(b => b.status === status)}
+                                onBookClick={handleBookClick}
+                            />
+                        ))}
 
                         {userBooks.length === 0 && (
                             <div className="text-center py-20 text-neutral-500">
@@ -1507,57 +1522,90 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
                         <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
                             <div>
-                                <h2 className="text-2xl font-bold text-white tracking-tight">LIBRARY</h2>
+                                <h2 className="text-2xl font-bold text-white tracking-tight">Your Library</h2>
                                 <p className="text-neutral-400 mt-1">{getLibraryTagline()}</p>
                             </div>
                         </div>
 
-                        {filteredBooks.length === 0 ? (
-                            <div className="text-center py-20 bg-neutral-900 rounded-xl border border-dashed border-neutral-800">
-                                <div className="flex justify-center mb-4">
-                                    <img src="/book-icon.png" alt="Empty Library" className="w-32 h-32 object-contain opacity-80" />
+                        {/* Filters */}
+                        <div className="flex space-x-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+                            <button
+                                onClick={() => setFilter('all')}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${filter === 'all'
+                                    ? 'bg-white text-neutral-900'
+                                    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white'
+                                    }`}
+                            >
+                                All
+                            </button>
+                            {Object.keys(STATUS_CONFIG).filter(k => k !== 'none').map((key) => (
+                                <button
+                                    key={key}
+                                    onClick={() => setFilter(key as BookStatus)}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex items-center space-x-2 ${filter === key
+                                        ? `${STATUS_CONFIG[key].bgColor} ${STATUS_CONFIG[key].color} ring-1 ring-inset ${STATUS_CONFIG[key].borderColor}`
+                                        : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white'
+                                        }`}
+                                >
+                                    <span>{STATUS_CONFIG[key].label}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Book List */}
+                        {filteredBooks.length > 0 ? (
+                            filter === 'all' ? (
+                                // New Dashboard Layout for "All"
+                                <div>
+                                    {['current', 'completed', 'desired', 'abandoned'].map((status) => (
+                                        <StatusBookSection
+                                            key={status}
+                                            status={status}
+                                            books={userBooks.filter(b => b.status === status)}
+                                            onBookClick={handleBookClick}
+                                        />
+                                    ))}
                                 </div>
-                                <h3 className="text-xl font-semibold text-white mb-2">{getEmptyStateMessage()}</h3>
-                                <p className="text-neutral-400">Search for books to add them to your collection</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                                {filteredBooks.map((book, idx) => (
-                                    <div
-                                        key={idx}
-                                        onClick={() => handleBookClick(book)}
-                                        className="cursor-pointer group relative flex flex-col"
-                                    >
-                                        <div className="relative aspect-[2/3] mb-3 overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
-                                            {book.coverId ? (
-                                                <img
-                                                    src={`https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`}
-                                                    alt={book.bookTitle}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full bg-neutral-900 flex items-center justify-center text-neutral-600">
-                                                    <img src="/book-icon.png" alt="No Cover" className="w-12 h-12 object-contain opacity-50" />
-                                                </div>
-                                            )}
-                                            {/* Status Badge */}
-                                            <div className="absolute top-2 right-2">
-                                                <div className={`p-1.5 rounded-full bg-neutral-900/90 backdrop-blur-sm shadow-sm ${STATUS_CONFIG[book.status]?.color}`}>
-                                                    {(() => {
-                                                        const Icon = STATUS_CONFIG[book.status]?.icon;
-                                                        return Icon ? <Icon size={14} /> : null;
-                                                    })()}
-                                                </div>
+                            ) : (
+                                // Grid Layout for Specific Filters
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                    {filteredBooks.map((book, idx) => (
+                                        <div
+                                            key={idx}
+                                            onClick={() => handleBookClick(book)}
+                                            className="cursor-pointer group relative flex flex-col"
+                                        >
+                                            <div className="relative aspect-[2/3] mb-3 overflow-hidden rounded-lg shadow-md group-hover:shadow-xl transition-all duration-300 group-hover:-translate-y-1">
+                                                {book.coverId ? (
+                                                    <img
+                                                        src={`https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`}
+                                                        alt={book.bookTitle}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full bg-neutral-900 flex items-center justify-center text-neutral-600">
+                                                        <img src="/book-icon.png" alt="No Cover" className="w-12 h-12 object-contain opacity-50" />
+                                                    </div>
+                                                )}
+                                                {/* Status Badge */}
+                                                {book.status && (book.status as string) !== 'none' && (
+                                                    <div className={`absolute top-2 right-2 p-1.5 rounded-full ${STATUS_CONFIG[book.status]?.bgColor || 'bg-neutral-800'} border ${STATUS_CONFIG[book.status]?.borderColor || 'border-neutral-700'} shadow-sm backdrop-blur-sm`}>
+                                                        {(() => {
+                                                            const Icon = STATUS_CONFIG[book.status]?.icon;
+                                                            return Icon ? <Icon size={14} className={STATUS_CONFIG[book.status]?.color || 'text-white'} /> : null;
+                                                        })()}
+                                                    </div>
+                                                )}
                                             </div>
+                                            <h3 className="text-sm font-semibold text-white leading-tight mb-1 group-hover:text-blue-400 transition-colors line-clamp-2">{book.bookTitle}</h3>
+                                            <p className="text-xs text-neutral-500 truncate">{Array.isArray(book.bookAuthors) ? book.bookAuthors[0] : book.bookAuthors}</p>
                                         </div>
-                                        <h3 className="font-bold text-white leading-tight mb-1 line-clamp-2 group-hover:text-neutral-300 transition-colors">{book.bookTitle}</h3>
-                                        {book.bookAuthors && (
-                                            <p className="text-sm text-neutral-400 line-clamp-1">
-                                                {Array.isArray(book.bookAuthors) ? book.bookAuthors[0] : book.bookAuthors}
-                                            </p>
-                                        )}
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
+                            )
+                        ) : (
+                            <div className="text-center py-20 text-neutral-500">
+                                {searchQuery ? 'No books found matching your search.' : 'Your library is empty. Start adding books above!'}
                             </div>
                         )}
                     </div>
