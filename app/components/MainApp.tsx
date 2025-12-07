@@ -364,7 +364,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
-const ReadingProgressGraph = ({ logs, bookTitle, coverUrl }: { logs: ReadingLog[], bookTitle: string, coverUrl?: string }) => {
+const ReadingProgressGraph = ({ logs, bookTitle, coverUrl, isAbandoned }: { logs: ReadingLog[], bookTitle: string, coverUrl?: string, isAbandoned?: boolean }) => {
     if (!logs || logs.length < 2) {
         return (
             <div className="bg-neutral-800/50 rounded-xl p-8 text-center border border-neutral-800">
@@ -383,9 +383,20 @@ const ReadingProgressGraph = ({ logs, bookTitle, coverUrl }: { logs: ReadingLog[
         thoughts: log.thoughts
     }));
 
+    // If abandoned, add a drop-off point
+    if (isAbandoned) {
+        data.push({
+            date: 'Abandoned',
+            page: 0,
+            thoughts: 'Stopped reading'
+        });
+    }
+
     const handleShareGraph = () => {
         const lastLog = data[data.length - 1];
-        const text = `I'm on page ${lastLog.page} of ${bookTitle}. Here's my progress! 📈`;
+        const text = isAbandoned
+            ? `I decided to stop reading ${bookTitle}. It just wasn't for me. 📉`
+            : `I'm on page ${lastLog.page} of ${bookTitle}. Here's my progress! 📈`;
 
         const shareUrl = new URL("https://read-goods.vercel.app/share");
         shareUrl.searchParams.set("title", bookTitle);
@@ -432,10 +443,10 @@ const ReadingProgressGraph = ({ logs, bookTitle, coverUrl }: { logs: ReadingLog[
                         <Line
                             type="monotone"
                             dataKey="page"
-                            stroke="#3b82f6"
+                            stroke={isAbandoned ? "#e879f9" : "#3b82f6"} // Lilac if abandoned
                             strokeWidth={3}
-                            dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                            activeDot={{ r: 6, fill: '#60a5fa' }}
+                            dot={{ fill: isAbandoned ? "#e879f9" : "#3b82f6", strokeWidth: 2, r: 4 }}
+                            activeDot={{ r: 6, fill: isAbandoned ? "#f0abfc" : "#60a5fa" }}
                         />
                     </LineChart>
                 </ResponsiveContainer>
@@ -611,21 +622,32 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                     )}
 
                     {/* Reading Graph Logic */}
-                    {userStatus === 'completed' && (
+                    {(userStatus === 'completed' || userStatus === 'abandoned') && (
                         <div className="mb-6">
                             <button
                                 onClick={() => setShowGraph(!showGraph)}
                                 className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
                             >
                                 <LineChartIcon size={18} />
-                                <span>{showGraph ? 'Hide Reading Graph' : 'View Reading Graph'}</span>
+                                <span className={userStatus === 'abandoned' ? 'text-fuchsia-400 hover:text-fuchsia-300' : ''}>
+                                    {showGraph ? 'Hide Reading Graph' : 'View Reading Graph'}
+                                </span>
                             </button>
                             {showGraph && (
                                 <div className="mt-4 h-64 w-full">
                                     {readingLogs.length > 0 ? (
-                                        <ReadingProgressGraph logs={readingLogs} bookTitle={book.title || book.bookTitle} coverUrl={book.coverUrl} />
+                                        <ReadingProgressGraph
+                                            logs={readingLogs}
+                                            bookTitle={book.title || book.bookTitle}
+                                            coverUrl={book.coverUrl}
+                                            isAbandoned={userStatus === 'abandoned'}
+                                        />
                                     ) : (
-                                        <p className="text-neutral-500 italic mt-4">No reading logs recorded yet.</p>
+                                        <p className="text-neutral-500 italic mt-4">
+                                            {userStatus === 'abandoned'
+                                                ? "No logs recorded before abandoning."
+                                                : "No reading logs recorded yet."}
+                                        </p>
                                     )}
                                 </div>
                             )}
