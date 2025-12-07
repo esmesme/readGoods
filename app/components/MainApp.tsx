@@ -166,8 +166,9 @@ const StatusBookSection = ({ status, books, onBookClick }: { status: string, boo
                                     <img src="/book-icon.png" className="w-8 h-8 opacity-50" />
                                 </div>
                             )}
+
                         </div>
-                        <p className="text-sm font-medium text-white truncate group-hover:text-neutral-300">{book.bookTitle || book.title}</p>
+                        <p className="text-sm font-medium text-white truncate group-hover:text-neutral-300">{book.bookTitle || book.title || 'Untitled Book'}</p>
                     </div>
                 ))}
             </div>
@@ -1476,7 +1477,15 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 {viewedUser && viewedUser.fid !== effectiveUser?.fid ? (
                     // --- VISITING VIEW ---
                     <div className="space-y-12">
-                        <div className="flex items-center justify-between mb-8">
+                        <div className="flex flex-col items-start gap-6 mb-8">
+                            <button
+                                onClick={() => setViewedUser(effectiveUser)}
+                                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg border border-neutral-700 transition-colors flex items-center gap-2"
+                            >
+                                <span>←</span>
+                                <span>Back to My Library</span>
+                            </button>
+
                             <div className="flex items-center space-x-4">
                                 {viewedUser.pfpUrl ? (
                                     <img src={viewedUser.pfpUrl} alt={viewedUser.username} className="w-16 h-16 rounded-full border-2 border-neutral-700" />
@@ -1490,12 +1499,6 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                     <p className="text-neutral-400">Viewing user {viewedUser.username}</p>
                                 </div>
                             </div>
-                            <button
-                                onClick={() => setViewedUser(effectiveUser)}
-                                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg border border-neutral-700 transition-colors"
-                            >
-                                Back to My Library
-                            </button>
                         </div>
 
                         {/* Sections */}
