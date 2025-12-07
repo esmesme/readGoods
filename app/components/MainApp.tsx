@@ -234,7 +234,7 @@ const ReadingLogModal = ({ isOpen, onClose, onSubmit, bookTitle, isSaving }: any
                             value={thoughts}
                             onChange={(e) => setThoughts(e.target.value)}
                             className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
-                            placeholder="What's happening? How are you finding it?"
+                            placeholder="How's the book? What's the vibe?"
                         />
                     </div>
 
@@ -261,6 +261,21 @@ const ReadingLogModal = ({ isOpen, onClose, onSubmit, bookTitle, isSaving }: any
             </div>
         </div>
     );
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-neutral-900 border border-neutral-700 p-3 rounded shadow-xl text-sm">
+                <p className="text-neutral-400 mb-1">{label}</p>
+                <p className="text-blue-400 font-bold mb-1">Page {payload[0].value}</p>
+                {payload[0].payload.thoughts && (
+                    <p className="text-neutral-300 italic max-w-xs">"{payload[0].payload.thoughts}"</p>
+                )}
+            </div>
+        );
+    }
+    return null;
 };
 
 const ReadingProgressGraph = ({ logs, bookTitle }: { logs: ReadingLog[], bookTitle: string }) => {
@@ -320,11 +335,7 @@ const ReadingProgressGraph = ({ logs, bookTitle }: { logs: ReadingLog[], bookTit
                             tickLine={{ stroke: '#333' }}
                             label={{ value: 'Page', angle: -90, position: 'insideLeft', fill: '#666' }}
                         />
-                        <Tooltip
-                            contentStyle={{ backgroundColor: '#171717', borderColor: '#333', color: '#fff' }}
-                            itemStyle={{ color: '#fff' }}
-                            labelStyle={{ color: '#888', marginBottom: '0.5rem' }}
-                        />
+                        <Tooltip content={<CustomTooltip />} />
                         <Line
                             type="monotone"
                             dataKey="page"
