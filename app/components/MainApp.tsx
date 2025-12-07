@@ -20,7 +20,7 @@ import {
 
 import { BookStatus, UserBook, ReadingLog } from "@/lib/types";
 import { sdk } from "@farcaster/frame-sdk";
-import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen } from 'lucide-react';
+import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen, Ban } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface FarcasterUser {
@@ -77,7 +77,7 @@ const ReadingIcon = ({ size = 24, className = "" }: { size?: number, className?:
     <img
         src="/reading-icon.png"
         alt="Reading"
-        style={{ width: size * 1.5, height: size * 1.5 }}
+        style={{ width: size * 3, height: size * 3 }}
         className={`object-contain ${className}`}
     />
 );
@@ -87,7 +87,7 @@ const CompletedIcon = ({ size = 24, className = "" }: { size?: number, className
     <img
         src="/completed-icon.png"
         alt="Completed"
-        style={{ width: size * 1.5, height: size * 1.5 }}
+        style={{ width: size * 3, height: size * 3 }}
         className={`object-contain ${className}`}
     />
 );
@@ -113,6 +113,13 @@ const STATUS_CONFIG: Record<string, { icon: any; label: string; color: string; b
         color: "text-blue-400",
         bgColor: "bg-blue-900/30",
         borderColor: "border-blue-700"
+    },
+    abandoned: {
+        icon: Ban,
+        label: "Abandoned",
+        color: "text-fuchsia-400",
+        bgColor: "bg-fuchsia-900/30",
+        borderColor: "border-fuchsia-700"
     },
     none: {
         icon: CircleUserRound,
