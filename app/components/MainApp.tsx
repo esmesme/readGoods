@@ -1150,7 +1150,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+                            onFocus={() => searchQuery.trim().length > 0 && setShowDropdown(true)}
                             placeholder="Search books..."
                             className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-500 rounded-lg focus:ring-2 focus:ring-neutral-600 focus:border-transparent outline-none transition-all"
                         />
@@ -1161,11 +1161,19 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         )}
 
                         {/* Dropdown Results */}
-                        {showDropdown && searchResults.length > 0 && (
+                        {showDropdown && searchQuery.trim().length > 0 && (
                             <div
                                 ref={dropdownRef}
                                 className="absolute top-full mt-2 w-96 bg-neutral-900 border border-neutral-800 rounded-lg shadow-2xl max-h-96 overflow-y-auto z-50"
                             >
+                                {/* Manual Entry Banner */}
+                                <button
+                                    onMouseDown={(e) => { e.preventDefault(); setShowManualEntry(true); }}
+                                    className="w-full p-4 bg-neutral-800/80 hover:bg-neutral-800 text-blue-400 text-sm font-medium text-center border-b border-neutral-700 transition-colors sticky top-0 backdrop-blur-sm z-10"
+                                >
+                                    Can't find what you're looking for? Click here to add a book to our database.
+                                </button>
+
                                 {searchResults.map((book) => (
                                     <button
                                         key={book.key}
@@ -1192,18 +1200,13 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                         </div>
                                     </button>
                                 ))}
+                                {searchResults.length === 0 && !isSearching && (
+                                    <div className="p-4 text-center text-neutral-500 text-sm">
+                                        No books found from open library.
+                                    </div>
+                                )}
                             </div>
                         )}
-
-                        <button
-                            onClick={() => setShowManualEntry(true)}
-                            className="absolute top-full mt-2 left-0 flex items-center gap-1 text-xs text-neutral-400 hover:text-white transition-colors"
-                        >
-                            <div className="bg-neutral-900 p-1 rounded-full hover:bg-neutral-800 border border-neutral-800">
-                                <Plus size={14} />
-                            </div>
-                            <span>Add book manually</span>
-                        </button>
                     </div>
                 </div>
 
@@ -1214,7 +1217,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+                        onFocus={() => searchQuery.trim().length > 0 && setShowDropdown(true)}
                         placeholder="Search books..."
                         className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-500 rounded-lg focus:ring-2 focus:ring-neutral-600 focus:border-transparent outline-none transition-all"
                     />
@@ -1225,11 +1228,19 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     )}
 
                     {/* Mobile Dropdown Results */}
-                    {showDropdown && searchResults.length > 0 && (
+                    {showDropdown && searchQuery.trim().length > 0 && (
                         <div
                             ref={mobileDropdownRef}
                             className="absolute top-full left-4 right-4 mt-2 bg-neutral-900 border border-neutral-800 rounded-lg shadow-2xl max-h-96 overflow-y-auto z-50"
                         >
+                            {/* Manual Entry Banner */}
+                            <button
+                                onMouseDown={(e) => { e.preventDefault(); setShowManualEntry(true); }}
+                                className="w-full p-4 bg-neutral-800/80 hover:bg-neutral-800 text-blue-400 text-sm font-medium text-center border-b border-neutral-700 transition-colors sticky top-0 backdrop-blur-sm z-10"
+                            >
+                                Can't find what you're looking for? Click here to add a book to our database.
+                            </button>
+
                             {searchResults.map((book) => (
                                 <button
                                     key={book.key}
@@ -1256,18 +1267,13 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                     </div>
                                 </button>
                             ))}
+                            {searchResults.length === 0 && !isSearching && (
+                                <div className="p-4 text-center text-neutral-500 text-sm">
+                                    No books found from open library.
+                                </div>
+                            )}
                         </div>
                     )}
-
-                    <button
-                        onClick={() => setShowManualEntry(true)}
-                        className="mt-2 flex items-center gap-1 text-xs text-neutral-400 hover:text-white transition-colors"
-                    >
-                        <div className="bg-neutral-900 p-1 rounded-full hover:bg-neutral-800 border border-neutral-800">
-                            <Plus size={14} />
-                        </div>
-                        <span>Add book manually</span>
-                    </button>
                 </div>
 
 
