@@ -514,171 +514,150 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                     {book.description && (
                         <div className="text-neutral-300 mb-6 text-sm leading-relaxed">
                             <p className="line-clamp-6 mb-4">{book.description}</p>
-                            {/* Actions - Only show if NOT visiting */}
-                            {!isVisiting && (
-                                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                                    {Object.keys(STATUS_CONFIG).filter(k => k !== 'none').map((statusKey) => {
-                                        const config = STATUS_CONFIG[statusKey];
-                                        const Icon = config.icon;
-                                        const isSelected = userStatus === statusKey;
-                                        return (
-                                            <button
-                                                key={statusKey}
-                                                onClick={() => onStatusChange(statusKey)}
-                                                className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all whitespace-nowrap ${isSelected
-                                                    ? `${config.bgColor} ${config.color} ${config.borderColor}`
-                                                    : 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:bg-neutral-700'
-                                                    }`}
-                                            >
-                                                <Icon size={18} />
-                                                <span>{config.label}</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-
-                            {/* Reading Graph Logic */}
-                            {userStatus === 'completed' && (
-                                <div className="mb-6">
+                        </div>
+                    )}
+                    {/* Actions - Only show if NOT visiting */}
+                    {!isVisiting && (
+                        <div className="flex flex-col gap-3 mb-6">
+                            {Object.keys(STATUS_CONFIG).filter(k => k !== 'none').map((statusKey) => {
+                                const config = STATUS_CONFIG[statusKey];
+                                const Icon = config.icon;
+                                const isSelected = userStatus === statusKey;
+                                return (
                                     <button
-                                        onClick={() => setShowGraph(!showGraph)}
-                                        className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
+                                        key={statusKey}
+                                        onClick={() => onStatusChange(statusKey)}
+                                        className={`w-full flex items-center justify-center space-x-3 px-4 py-3 rounded-xl border transition-all ${isSelected
+                                            ? `${config.bgColor} ${config.color} ${config.borderColor} shadow-sm ring-1 ring-white/10`
+                                            : 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:bg-neutral-700'
+                                            }`}
                                     >
-                                        <LineChartIcon size={18} />
-                                        <span>{showGraph ? 'Hide Reading Graph' : 'View Reading Graph'}</span>
+                                        <Icon size={18} />
+                                        <span>{config.label}</span>
                                     </button>
-                                    {showGraph && (
-                                        <div className="mt-4 h-64 w-full">
-                                            {readingLogs.length > 0 ? (
-                                                <ReadingProgressGraph logs={readingLogs} bookTitle={book.title || book.bookTitle} coverUrl={book.coverUrl} />
-                                            ) : (
-                                                <p className="text-neutral-500 italic mt-4">No reading logs recorded yet.</p>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                                );
+                            })}
+
+                            {userStatus && userStatus !== 'none' && (
+                                <button
+                                    onClick={() => onStatusChange('none')}
+                                    className="w-full flex items-center justify-center space-x-3 px-4 py-3 rounded-xl border border-red-900/30 bg-red-900/10 text-red-400 hover:bg-red-900/20 transition-all shadow-sm"
+                                >
+                                    <Trash2 size={18} />
+                                    <span>Remove</span>
+                                </button>
                             )}
 
-                            {/* Log Progress - Only if Current and NOT visiting */}
-                            {!isVisiting && userStatus === 'current' && (
-                                <div className="mb-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-800">
-                                    <h4 className="text-white font-semibold mb-2 flex items-center">
-                                        <BookOpen size={18} className="mr-2 text-blue-400" />
-                                        Update Progress
-                                    </h4>
-                                    <button
-                                        onClick={() => onLogProgress(book)}
-                                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
-                                    >
-                                        Log Pages Read
-                                    </button>
-                                </div>
-                            )}
+                            <button
+                                onClick={handleShare}
+                                className="w-full flex items-center justify-center space-x-3 px-4 py-3 rounded-xl border border-neutral-700 bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-all shadow-sm"
+                            >
+                                <Share size={18} />
+                                <span>Share</span>
+                            </button>
+                        </div>
+                    )}
 
-                            {/* User Review */}
-                            {(userStatus === 'completed' || isVisiting) && (
-                                <div className="mb-6">
-                                    <h4 className="text-white font-semibold mb-2">My Review</h4>
-                                    {isReviewing && !isVisiting ? ( // Only allow editing if not visiting
-                                        <div className="space-y-3">
-                                            <textarea
-                                                value={reviewText}
-                                                onChange={(e) => setReviewText(e.target.value)}
-                                                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white placeholder-neutral-500 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                rows={4}
-                                                placeholder="What did you think?"
-                                            />
-                                            <div className="flex justify-end space-x-2">
-                                                <button
-                                                    onClick={() => setIsReviewing(false)}
-                                                    className="px-4 py-2 text-neutral-400 hover:text-white"
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button
-                                                    onClick={handleSaveReview}
-                                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-                                                >
-                                                    Save Review
-                                                </button>
-                                            </div>
-                                        </div>
+                    {/* Reading Graph Logic */}
+                    {userStatus === 'completed' && (
+                        <div className="mb-6">
+                            <button
+                                onClick={() => setShowGraph(!showGraph)}
+                                className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
+                            >
+                                <LineChartIcon size={18} />
+                                <span>{showGraph ? 'Hide Reading Graph' : 'View Reading Graph'}</span>
+                            </button>
+                            {showGraph && (
+                                <div className="mt-4 h-64 w-full">
+                                    {readingLogs.length > 0 ? (
+                                        <ReadingProgressGraph logs={readingLogs} bookTitle={book.title || book.bookTitle} coverUrl={book.coverUrl} />
                                     ) : (
-                                        <div className="group relative">
-                                            {userReview ? (
-                                                <div className="p-4 bg-neutral-800/50 rounded-lg border border-neutral-800 italic text-neutral-300">
-                                                    "{userReview}"
-                                                </div>
-                                            ) : (
-                                                <p className="text-neutral-500 italic">No review written.</p>
-                                            )}
-                                            {!isVisiting && ( // Only allow editing if not visiting
-                                                <button
-                                                    onClick={() => setIsReviewing(true)}
-                                                    className="mt-2 text-sm text-blue-400 hover:text-blue-300"
-                                                >
-                                                    {userReview ? 'Edit Review' : 'Write a Review'}
-                                                </button>
-                                            )}
-                                        </div>
+                                        <p className="text-neutral-500 italic mt-4">No reading logs recorded yet.</p>
                                     )}
                                 </div>
                             )}
                         </div>
                     )}
+
+                    {/* Log Progress - Only if Current and NOT visiting */}
+                    {!isVisiting && userStatus === 'current' && (
+                        <div className="mb-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-800">
+                            <h4 className="text-white font-semibold mb-2 flex items-center">
+                                <BookOpen size={18} className="mr-2 text-blue-400" />
+                                Update Progress
+                            </h4>
+                            <button
+                                onClick={() => onLogProgress(book)}
+                                className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                            >
+                                Log Pages Read
+                            </button>
+                        </div>
+                    )}
+
+                    {/* User Review */}
+                    {(userStatus === 'completed' || isVisiting) && (
+                        <div className="mb-6">
+                            <h4 className="text-white font-semibold mb-2">My Review</h4>
+                            {isReviewing && !isVisiting ? ( // Only allow editing if not visiting
+                                <div className="space-y-3">
+                                    <textarea
+                                        value={reviewText}
+                                        onChange={(e) => setReviewText(e.target.value)}
+                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white placeholder-neutral-500 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        rows={4}
+                                        placeholder="What did you think?"
+                                    />
+                                    <div className="flex justify-end space-x-2">
+                                        <button
+                                            onClick={() => setIsReviewing(false)}
+                                            className="px-4 py-2 text-neutral-400 hover:text-white"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleSaveReview}
+                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                                        >
+                                            Save Review
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="group relative">
+                                    {userReview ? (
+                                        <div className="p-4 bg-neutral-800/50 rounded-lg border border-neutral-800 italic text-neutral-300">
+                                            "{userReview}"
+                                        </div>
+                                    ) : (
+                                        <p className="text-neutral-500 italic">No review written.</p>
+                                    )}
+                                    {!isVisiting && ( // Only allow editing if not visiting
+                                        <button
+                                            onClick={() => setIsReviewing(true)}
+                                            className="mt-2 text-sm text-blue-400 hover:text-blue-300"
+                                        >
+                                            {userReview ? 'Edit Review' : 'Write a Review'}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
 
                     {/* User Status Display */}
                     {/* This section is largely replaced by the new logic above */}
                     {/* Keeping the original structure for other statuses if needed, but review/graph/log pages are now handled */}
-                    {userStatus && userStatus !== 'none' && !isVisiting && ( // Only show if not visiting
-                        <div className={`flex flex-col space-y-4 p-4 rounded-xl border-l-4 ${userStatusConfig.color} ${userStatusConfig.bgColor} ${userStatusConfig.borderColor} shadow-sm mb-6`}>
-                            <div className="flex items-center space-x-2">
-                                <CircleUserRound size={24} className={userStatusConfig.color} />
-                                <span className="font-semibold text-neutral-200">
-                                    {`Your Status: ${userStatusConfig.label}`}
-                                </span>
-                            </div>
-                        </div>
-                    )}
+
                 </div>
             </div>
 
             {/* Footer and Friends Section */}
             <div className="mt-8 pt-6 border-t border-neutral-800">
                 {/* Action Buttons - Only show if NOT visiting */}
-                {!isVisiting && (
-                    <div className="flex flex-wrap gap-4 mb-6 justify-center md:justify-start">
-                        {Object.keys(STATUS_CONFIG).filter(s => s !== 'none').map((status) => (
-                            <StatusIcon
-                                key={status}
-                                status={status}
-                                size={24}
-                                isButton={true}
-                                onClick={() => onStatusChange(status)}
-                                className={userStatus === status ? 'ring-2 ring-neutral-500' : ''}
-                            />
-                        ))}
-                        {userStatus && userStatus !== 'none' && (
-                            <button
-                                onClick={() => onStatusChange('none')}
-                                className="flex items-center space-x-2 p-2 rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40 transition-all duration-200"
-                                title="Remove from your library"
-                            >
-                                <Trash2 size={24} />
-                                <span className="font-semibold">Remove</span>
-                            </button>
-                        )}
-                        <button
-                            onClick={handleShare}
-                            className="flex items-center space-x-2 p-2 rounded-lg bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-all duration-200"
-                            title="Share to Farcaster"
-                        >
-                            <Share size={24} />
-                            <span className="font-semibold">Share</span>
-                        </button>
-                    </div>
-                )}
+
 
                 <h3 className="text-xs font-semibold text-neutral-300 mb-4 flex items-center">
                     <Users size={14} className="mr-2 text-neutral-400" />
@@ -750,7 +729,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
@@ -1203,8 +1182,9 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     isSaving={isSaving}
                     onLogProgress={handleLogProgress}
                     currentUserFid={effectiveUser?.fid}
-                    isVisiting={viewedUser?.fid !== effectiveUser?.fid}
+                    isVisiting={!!viewedUser && viewedUser.fid !== effectiveUser?.fid}
                     viewedUser={viewedUser}
+                    setViewedUser={setViewedUser}
                 />
 
                 <ReadingLogModal
