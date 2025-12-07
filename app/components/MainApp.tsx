@@ -163,7 +163,7 @@ const StatusBookSection = ({ status, books, onBookClick }: { status: string, boo
                                 <img src={book.coverUrl || `https://covers.openlibrary.org/b/id/${book.coverId || book.cover_i}-L.jpg`} alt={book.bookTitle || book.title} className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full bg-neutral-800 flex items-center justify-center">
-                                    <img src="/book-icon.png" className="w-8 h-8 opacity-50" />
+                                    <img src="/book-icon.png" className="w-8 h-8 object-contain opacity-50" />
                                 </div>
                             )}
 
