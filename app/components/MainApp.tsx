@@ -1107,6 +1107,11 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         setBookUsers(users);
         setLoadingDetails(false);
 
+        // Update selectedBook with fetched details (fixes missing title/cover for visiting books)
+        if (details) {
+            setSelectedBook(prev => prev ? ({ ...prev, ...details }) : null);
+        }
+
         // Fetch reading logs if book is current or completed
         if (userStatus === 'current' || userStatus === 'completed') {
             if (effectiveUser?.fid) {
