@@ -111,10 +111,26 @@ interface MainAppProps {
 
 // --- Components ---
 
-const shareToFarcaster = (text: string) => {
-    const appUrl = "https://read-goods.vercel.app"; // Placeholder URL
-    const fullText = `${text}\n\n${appUrl}`;
-    const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(fullText)}`;
+const shareToFarcaster = (text: string, embedUrl?: string) => {
+    const appUrl = "https://read-goods.vercel.app"; // Fallback if no embedUrl
+    // If embedUrl is provided, we still might want the text to contain a link, but usually embeds are separate.
+    // The requirement says "share links to actually be embeds".
+    // Warpcast compose format: text=...&embeds[]=...
+
+    let url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}`;
+
+    if (embedUrl) {
+        url += `&embeds[]=${encodeURIComponent(embedUrl)}`;
+    } else {
+        // Fallback to appending appUrl to text if no specific embed
+        // But logic above was appending it to text. Let's keep consistent behavior or improve?
+        // If we have an embed, we probably don't need the link in the text as well, 
+        // but let's keep the text clean and just attach the embed.
+        // If NO embedUrl, we might defaults to appUrl as an embed? 
+        // Original code: fullText = text + appUrl.
+        url += `&embeds[]=${encodeURIComponent(appUrl)}`;
+    }
+
     try {
         sdk.actions.openUrl(url);
     } catch (e) {
@@ -278,7 +294,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
-const ReadingProgressGraph = ({ logs, bookTitle }: { logs: ReadingLog[], bookTitle: string }) => {
+const ReadingProgressGraph = ({ logs, bookTitle, coverUrl }: { logs: ReadingLog[], bookTitle: string, coverUrl?: string }) => {
     if (!logs || logs.length < 2) {
         return (
             <div className="bg-neutral-800/50 rounded-xl p-8 text-center border border-neutral-800">
@@ -300,7 +316,14 @@ const ReadingProgressGraph = ({ logs, bookTitle }: { logs: ReadingLog[], bookTit
     const handleShareGraph = () => {
         const lastLog = data[data.length - 1];
         const text = `I'm on page ${lastLog.page} of ${bookTitle}. Here's my progress! 📈`;
-        shareToFarcaster(text);
+
+        const shareUrl = new URL("https://read-goods.vercel.app/share");
+        shareUrl.searchParams.set("title", bookTitle);
+        if (coverUrl) {
+            shareUrl.searchParams.set("image", coverUrl);
+        }
+
+        shareToFarcaster(text, shareUrl.toString());
     };
 
     return (
@@ -535,7 +558,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                                         <span className="text-sm font-medium">Generate Progress Graph</span>
                                     </button>
                                 ) : (
-                                    <ReadingProgressGraph logs={book.logs || []} bookTitle={book.title || book.bookTitle} />
+                                    <ReadingProgressGraph logs={book.logs || []} bookTitle={book.title || book.bookTitle} coverUrl={book.coverUrl} />
                                 )}
                             </div>
                         </>
