@@ -23,8 +23,17 @@ export async function saveBookToFirestore(
 
         // 1. Save/Update the book details in 'books' collection
         const bookRef = doc(db, BOOKS_COLLECTION, bookDocId);
+
+        // Sanitize book object to remove undefined values
+        const bookData = { ...book };
+        Object.keys(bookData).forEach(key => {
+            if ((bookData as any)[key] === undefined) {
+                delete (bookData as any)[key];
+            }
+        });
+
         await setDoc(bookRef, {
-            ...book,
+            ...bookData,
             updatedAt: new Date()
         }, { merge: true });
 
