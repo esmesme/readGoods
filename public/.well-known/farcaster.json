@@ -1,18 +1,35 @@
 {
-    "accountAssociation": {
-        "header": "eyJmaWQiOiA4ODY5MzcsICJ0eXBlIjogImN1c3RvZHkiLCAia2V5IjogIjB4N0Q0MDBGRDFGNTkyYkI0RkNkNmEzNjNCZkQyMDBBNDNEMTY3MDRlNyJ9",
-        "payload": "eyJkb21haW4iOiAicmVhZC1nb29kcy52ZXJjZWwuYXBwIn0",
-        "signature": "MHg1MzMzZmQ0OTU1NDdlODZkZTU5YjU3ZTU5YjU4YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjYw"
-    },
     "frame": {
+        "name": "readgoods",
         "version": "1",
-        "name": "Read Goods",
-        "iconUrl": "https://read-goods.vercel.app/book-icon.png",
+        "iconUrl": "https://read-goods.vercel.app/readgoods-icon.png",
         "homeUrl": "https://read-goods.vercel.app",
-        "imageUrl": "https://read-goods.vercel.app/book-icon.png",
-        "buttonTitle": "Launch App",
-        "splashImageUrl": "https://read-goods.vercel.app/readgoods-logo.png",
-        "splashBackgroundColor": "#171717",
-        "webhookUrl": "https://read-goods.vercel.app/api/webhook"
+        "imageUrl": "https://read-goods.vercel.app/readgoods_total_logo.png",
+        "buttonTitle": "Build your library",
+        "splashImageUrl": "https://read-goods.vercel.app/readgoods_total_logo.png",
+        "splashBackgroundColor": "#000000",
+        "webhookUrl": "https://read-goods.vercel.app/api/webhook",
+        "subtitle": "Bridge Your Bookshelf with Your Farcaster Personality",
+        "description": "readgoods is the place on Farcaster to blend your real-life reading habit into your online personality. Track your literary journey, connect with other readers, and visualize your progress!",
+        "primaryCategory": "social",
+        "screenshotUrls": [
+            "https://read-goods.vercel.app/screenshots/library_view.png"
+        ],
+        "tags": [
+            "social",
+            "library",
+            "books",
+            "literary",
+            "read"
+        ],
+        "tagline": "Read books and make friends",
+        "ogTitle": "readgoods - a social library",
+        "ogDescription": "Bring your bookshelf to your online personality",
+        "ogImageUrl": "https://read-goods.vercel.app/readgoods_total_logo.png"
+    },
+    "accountAssociation": {
+        "header": "eyJmaWQiOjEwMjA2OTgsInR5cGUiOiJhdXRoIiwia2V5IjoiMHg2NmE5ZWM3MjI0N2YyOTBmQkEwZEJBMTUyYTc5MEU0ODc2ODY4NEYzIn0",
+        "payload": "eyJkb21haW4iOiIifQ",
+        "signature": "3b1zg74PAd1XAtX1YYb4r27GttEzTcFjVp01tP1e7bx5tHr3zHAvyqh3d7e9usPfQbdkcUdEoi5RNUdcqTf5Ohs="
     }
 }
