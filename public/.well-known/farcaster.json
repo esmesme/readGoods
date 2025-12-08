@@ -2,7 +2,7 @@
     "frame": {
         "name": "readgoods",
         "version": "1",
-        "iconUrl": "https://read-goods.vercel.app/readgoods-icon.png",
+        "iconUrl": "https://read-goods.vercel.app/readgoods-fc-icons.png",
         "homeUrl": "https://read-goods.vercel.app",
         "imageUrl": "https://read-goods.vercel.app/readgoods_total_logo.png",
         "buttonTitle": "Build your library",
