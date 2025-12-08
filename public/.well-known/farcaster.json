@@ -1,0 +1,18 @@
+{
+    "accountAssociation": {
+        "header": "eyJmaWQiOiA4ODY5MzcsICJ0eXBlIjogImN1c3RvZHkiLCAia2V5IjogIjB4N0Q0MDBGRDFGNTkyYkI0RkNkNmEzNjNCZkQyMDBBNDNEMTY3MDRlNyJ9",
+        "payload": "eyJkb21haW4iOiAicmVhZC1nb29kcy52ZXJjZWwuYXBwIn0",
+        "signature": "MHg1MzMzZmQ0OTU1NDdlODZkZTU5YjU3ZTU5YjU4YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjU5YjYw"
+    },
+    "frame": {
+        "version": "1",
+        "name": "Read Goods",
+        "iconUrl": "https://read-goods.vercel.app/book-icon.png",
+        "homeUrl": "https://read-goods.vercel.app",
+        "imageUrl": "https://read-goods.vercel.app/book-icon.png",
+        "buttonTitle": "Launch App",
+        "splashImageUrl": "https://read-goods.vercel.app/readgoods-logo.png",
+        "splashBackgroundColor": "#171717",
+        "webhookUrl": "https://read-goods.vercel.app/api/webhook"
+    }
+}
