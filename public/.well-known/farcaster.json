@@ -9,8 +9,8 @@
         "splashImageUrl": "https://read-goods.vercel.app/readgoods_total_logo.png",
         "splashBackgroundColor": "#000000",
         "webhookUrl": "https://read-goods.vercel.app/api/webhook",
-        "subtitle": "Bridge Your Bookshelf with Your Farcaster Personality",
-        "description": "readgoods is the place on Farcaster to blend your real-life reading habit into your online personality. Track your literary journey, connect with other readers, and visualize your progress!",
+        "subtitle": "Bring Your Bookshelf To FC",
+        "description": "Blend real reading with your online self. Track your literary journey, connect with readers, and visualize your progress.",
         "primaryCategory": "social",
         "screenshotUrls": [
             "https://read-goods.vercel.app/screenshots/library_view.png"
