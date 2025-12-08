@@ -354,7 +354,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         return (
             <div className="bg-neutral-900 border border-neutral-700 p-3 rounded shadow-xl text-sm">
-                <p className="text-neutral-400 mb-1">{label}</p>
+                <p className="text-neutral-400 mb-1">{payload[0]?.payload?.displayDate || label}</p>
                 <p className="text-blue-400 font-bold mb-1">Page {payload[0].value}</p>
                 {payload[0].payload.thoughts && (
                     <p className="text-neutral-300 italic max-w-xs">"{payload[0].payload.thoughts}"</p>
@@ -378,8 +378,9 @@ const ReadingProgressGraph = ({ logs, bookTitle, coverUrl, isAbandoned }: { logs
         );
     }
 
-    const data = logs.map(log => ({
-        date: new Date(log.date.seconds * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    const data = logs.map((log, i) => ({
+        uniqueId: `${log.date.seconds}-${i}`, // Ensure unique key for Recharts
+        displayDate: new Date(log.date.seconds * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
         page: log.page,
         thoughts: log.thoughts
     }));
@@ -387,7 +388,8 @@ const ReadingProgressGraph = ({ logs, bookTitle, coverUrl, isAbandoned }: { logs
     // If abandoned, add a drop-off point
     if (isAbandoned) {
         data.push({
-            date: 'Abandoned',
+            uniqueId: 'abandoned',
+            displayDate: 'Abandoned',
             page: 0,
             thoughts: 'Stopped reading'
         });
@@ -429,7 +431,11 @@ const ReadingProgressGraph = ({ logs, bookTitle, coverUrl, isAbandoned }: { logs
                     <LineChart data={data}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                         <XAxis
-                            dataKey="date"
+                            dataKey="uniqueId"
+                            tickFormatter={(val) => {
+                                const item = data.find(d => d.uniqueId === val);
+                                return item ? item.displayDate : val;
+                            }}
                             stroke="#666"
                             tick={{ fill: '#888', fontSize: 12 }}
                             tickLine={{ stroke: '#333' }}
