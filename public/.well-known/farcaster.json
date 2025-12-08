@@ -27,11 +27,9 @@
         "ogDescription": "Bring your bookshelf to your online personality",
         "ogImageUrl": "https://read-goods.vercel.app/readgoods_total_logo.png"
     },
-    {
-        "accountAssociation": {
-            "header": "eyJmaWQiOjEwMjA2OTgsInR5cGUiOiJhdXRoIiwia2V5IjoiMHg2NmE5ZWM3MjI0N2YyOTBmQkEwZEJBMTUyYTc5MEU0ODc2ODY4NEYzIn0",
-            "payload": "eyJkb21haW4iOiJyZWFkLWdvb2RzLnZlcmNlbC5hcHAifQ",
-            "signature": "vlbxfH3Vq3ERcz9lzpUjlN6+xufqZay0CWHmEfQBfxpWoVMgcNk6R8L+LEVu+nYsbeLKgwA+MgP38YFgaNc3uhw="
-        }
+    "accountAssociation": {
+        "header": "eyJmaWQiOjEwMjA2OTgsInR5cGUiOiJhdXRoIiwia2V5IjoiMHg2NmE5ZWM3MjI0N2YyOTBmQkEwZEJBMTUyYTc5MEU0ODc2ODY4NEYzIn0",
+        "payload": "eyJkb21haW4iOiJyZWFkLWdvb2RzLnZlcmNlbC5hcHAifQ",
+        "signature": "vlbxfH3Vq3ERcz9lzpUjlN6+xufqZay0CWHmEfQBfxpWoVMgcNk6R8L+LEVu+nYsbeLKgwA+MgP38YFgaNc3uhw="
     }
 }
