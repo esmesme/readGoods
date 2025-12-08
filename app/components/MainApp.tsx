@@ -635,7 +635,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                                 </span>
                             </button>
                             {showGraph && (
-                                <div className="mt-4 h-64 w-full">
+                                <div className="mt-4 w-full">
                                     {readingLogs.length > 0 ? (
                                         <ReadingProgressGraph
                                             logs={readingLogs}
