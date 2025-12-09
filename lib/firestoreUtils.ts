@@ -249,8 +249,16 @@ export interface CustomBook {
 
 export async function addCustomBook(bookData: Omit<CustomBook, 'key' | 'createdAt' | 'updatedAt'>) {
     try {
+        // Sanitize data to remove undefined values
+        const safeBookData = { ...bookData };
+        Object.keys(safeBookData).forEach(key => {
+            if ((safeBookData as any)[key] === undefined) {
+                delete (safeBookData as any)[key];
+            }
+        });
+
         const docRef = await addDoc(collection(db, CUSTOM_BOOKS_COLLECTION), {
-            ...bookData,
+            ...safeBookData,
             createdAt: new Date(),
             updatedAt: new Date(),
         });
@@ -352,8 +360,17 @@ export async function updateCustomBook(key: string, updates: Partial<CustomBook>
     try {
         const docId = key.replace('custom_', '');
         const docRef = doc(db, CUSTOM_BOOKS_COLLECTION, docId);
+
+        // Sanitize data
+        const safeUpdates = { ...updates };
+        Object.keys(safeUpdates).forEach(key => {
+            if ((safeUpdates as any)[key] === undefined) {
+                delete (safeUpdates as any)[key];
+            }
+        });
+
         await updateDoc(docRef, {
-            ...updates,
+            ...safeUpdates,
             updatedAt: new Date()
         });
     } catch (error) {
