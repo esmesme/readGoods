@@ -6,7 +6,13 @@ type Props = {
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
     const title = (searchParams.title as string) || "Read Goods";
-    const imageUrl = (searchParams.image as string) || "https://read-goods.vercel.app/book-icon.png"; // Fixed: icon.png didn't exist
+    // User requested "desire-icon.png", assuming they meant "desired-icon.png" which exists
+    const imageUrl = (searchParams.image as string) || "https://read-goods.vercel.app/desired-icon.png";
+    const userFid = searchParams.userFid as string;
+
+    const appUrl = userFid
+        ? `https://read-goods.vercel.app?userFid=${userFid}`
+        : "https://read-goods.vercel.app";
 
     const embedData = {
         version: "next", // Use 'next' for v2/miniapp compatibility
@@ -16,7 +22,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
             action: {
                 type: "launch_frame", // Fixed: Standard action for launching frames/miniapps
                 name: "Read Goods",
-                url: "https://read-goods.vercel.app",
+                url: appUrl,
                 splashImageUrl: "https://read-goods.vercel.app/book-icon.png",
                 splashBackgroundColor: "#171717"
             }

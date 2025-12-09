@@ -918,6 +918,56 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         setTimeout(() => setToast({ message: '', type: '' }), 3000);
     };
 
+    // Deep Linking: Check URL for userFid on mount
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const userFidParam = params.get('userFid');
+            if (userFidParam) {
+                const fid = parseInt(userFidParam);
+                if (!isNaN(fid) && fid !== effectiveUser?.fid) {
+                    // Fetch generic user info if possible, or just set FID and let the UI fetch details
+                    // For now, simpler to searchUsers or just set partial data
+                    // We'll try to fetch basic info via search/lookup if we had a direct usage
+                    // But our getUserBooks just needs FID. For display name, we might query firestore
+                    // Let's create a quick lookup helper or just set FID and show "User <FID>" temporarily
+                    // Better: use searchUsers to find exact match if we can, or getDoc from users collection
+                    // For now, let's set minimal data and let the fetch fill it?
+                    // Actually, we don't have a direct 'getUserProfile' export here, but we can use firestoreUtils
+                    // Let's just set the FID and let the UI handle valid FIDs.
+                    setViewedUser({ fid, username: '', displayName: `User ${fid}`, pfpUrl: '' });
+
+                    // Ideally we fetch the real profile. using the 'users' collection logic from firestoreUtils logic
+                    // We can reuse the same logic we use for friends list or searching
+                    // Let's do a quick fetch
+                    import('@/lib/firebase').then(async ({ db }) => {
+                        const { doc, getDoc } = await import('firebase/firestore');
+                        const userDoc = await getDoc(doc(db, 'users', fid.toString()));
+                        if (userDoc.exists()) {
+                            const userData = userDoc.data();
+                            setViewedUser({
+                                fid,
+                                username: userData.username || '',
+                                displayName: userData.displayName || `User ${fid}`,
+                                pfpUrl: userData.pfpUrl || ''
+                            });
+                        }
+                    });
+                }
+            }
+        }
+    }, [effectiveUser?.fid]);
+
+    const handleShareLibrary = () => {
+        if (!effectiveUser?.fid) return;
+        const text = `Check out my library on Read Goods! 📚`;
+        const shareUrl = new URL("https://read-goods.vercel.app/share");
+        shareUrl.searchParams.set("userFid", effectiveUser.fid.toString());
+        shareUrl.searchParams.set("image", "https://read-goods.vercel.app/desired-icon.png"); // Explicitly set the icon
+
+        shareToFarcaster(text, shareUrl.toString());
+    };
+
     // Debounced search
     useEffect(() => {
         if (!searchQuery.trim()) {
@@ -979,12 +1029,15 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
         // Save user profile (only for the effective user, not viewed user)
         if (!viewedUser) { // Only save profile if we are viewing our own library
-            saveUserProfile({
-                fid: effectiveUser.fid,
-                username: effectiveUser.username,
-                displayName: effectiveUser.displayName,
-                pfpUrl: effectiveUser.pfpUrl
-            });
+            // Only save if we have actual data to save
+            if (effectiveUser.username) {
+                saveUserProfile({
+                    fid: effectiveUser.fid,
+                    username: effectiveUser.username,
+                    displayName: effectiveUser.displayName,
+                    pfpUrl: effectiveUser.pfpUrl
+                });
+            }
         }
 
         const q = query(
@@ -1531,14 +1584,21 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 ) : (
                     // --- MY LIBRARY VIEW (Existing) ---
                     <div>
-                        {/* Log Pages Button */}
-                        <div className="relative mb-12">
+                        <div className="relative mb-12 flex gap-3">
                             <button
                                 onClick={handleHomeLogClick}
                                 className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors border border-neutral-700"
                             >
                                 <BookOpen size={16} />
                                 <span className="text-sm font-medium">Log Pages</span>
+                            </button>
+
+                            <button
+                                onClick={handleShareLibrary}
+                                className="flex items-center space-x-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-600/30 px-3 py-2 rounded-lg transition-all"
+                            >
+                                <Share size={16} />
+                                <span className="text-sm font-medium">Share my library</span>
                             </button>
 
                             {showLogBookDropdown && (
