@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc, addDoc, updateDoc, runTransaction } from 'firebase/firestore';
 import { BookData } from './openLibrary';
 import { BookStatus, UserBook, ReadingLog } from './types';
 
@@ -72,9 +72,40 @@ export async function saveBookToFirestore(
     }
 }
 
+export async function getNextUserNumber(): Promise<number> {
+    const counterRef = doc(db, 'counters', 'users');
+
+    return await runTransaction(db, async (transaction) => {
+        const counterDoc = await transaction.get(counterRef);
+        let currentCount = 0;
+
+        if (counterDoc.exists()) {
+            currentCount = counterDoc.data().count || 0;
+        }
+
+        const nextCount = currentCount + 1;
+        transaction.set(counterRef, { count: nextCount }, { merge: true });
+        return nextCount;
+    });
+}
+
 export async function saveUserProfile(user: { fid: number; username?: string; displayName?: string; pfpUrl?: string }) {
     try {
         const userRef = doc(db, USERS_COLLECTION, user.fid.toString());
+
+        // Check if user exists to preserve or assign goodsID
+        const userDoc = await getDoc(userRef);
+        let goodsID: number | undefined;
+
+        if (userDoc.exists()) {
+            goodsID = userDoc.data().goodsID;
+        }
+
+        // If no join number, assign one
+        if (goodsID === undefined) {
+            goodsID = await getNextUserNumber();
+        }
+
         // Sanitize user object
         const userData = { ...user };
         Object.keys(userData).forEach(key => {
@@ -85,6 +116,7 @@ export async function saveUserProfile(user: { fid: number; username?: string; di
 
         await setDoc(userRef, {
             ...userData,
+            goodsID, // Save the chronological ID
             updatedAt: new Date(),
         }, { merge: true });
     } catch (error) {
