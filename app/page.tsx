@@ -13,6 +13,12 @@ export const metadata: Metadata = {
     },
 };
 
+import { Suspense } from "react";
+
 export default function Page() {
-    return <FrameApp />;
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-neutral-500">Loading...</div>}>
+            <FrameApp />
+        </Suspense>
+    );
 }
