@@ -1490,7 +1490,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onFocus={() => searchQuery.trim().length > 0 && setShowDropdown(true)}
-                            placeholder="Search books..."
+                            placeholder="search books to add to your library..."
                             className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-500 rounded-lg focus:ring-2 focus:ring-neutral-600 focus:border-transparent outline-none transition-all"
                         />
                         {isSearching && (
@@ -1557,7 +1557,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onFocus={() => searchQuery.trim().length > 0 && setShowDropdown(true)}
-                        placeholder="Search books..."
+                        placeholder="search books to add to your library..."
                         className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-500 rounded-lg focus:ring-2 focus:ring-neutral-600 focus:border-transparent outline-none transition-all"
                     />
                     {isSearching && (
