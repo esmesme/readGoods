@@ -392,6 +392,60 @@ const ReadingLogModal = ({ isOpen, onClose, onSubmit, bookTitle, isSaving }: any
     );
 };
 
+const LogHistoryModal = ({ isOpen, onClose, logs, bookTitle }: any) => {
+    if (!isOpen) return null;
+
+    // Sort logs by date descending
+    const sortedLogs = [...logs].sort((a, b) => b.date.seconds - a.date.seconds);
+
+    return (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-neutral-900 rounded-xl border border-neutral-800 w-full max-w-md shadow-2xl relative max-h-[80vh] flex flex-col">
+                <div className="p-6 pb-2">
+                    <button
+                        onClick={onClose}
+                        className="absolute top-4 right-4 text-neutral-400 hover:text-white"
+                    >
+                        <X size={20} />
+                    </button>
+                    <h3 className="text-xl font-bold text-white mb-1">Reading History</h3>
+                    <p className="text-neutral-400 text-sm truncate">{bookTitle}</p>
+                </div>
+
+                <div className="overflow-y-auto p-6 pt-2 space-y-4">
+                    {sortedLogs.length === 0 ? (
+                        <p className="text-neutral-500 text-center py-8">No logs recorded yet.</p>
+                    ) : (
+                        sortedLogs.map((log, i) => (
+                            <div key={i} className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-800">
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-neutral-400 text-xs">
+                                        {new Date(log.date.seconds * 1000).toLocaleDateString(undefined, {
+                                            weekday: 'short',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: 'numeric',
+                                            minute: 'numeric'
+                                        })}
+                                    </span>
+                                    <span className="text-blue-400 font-bold text-sm">
+                                        {log.unit === 'percent' ? `${log.page}%` :
+                                            log.unit === 'chapter' ? `Ch. ${log.page}` :
+                                                `Page ${log.page}`}
+                                    </span>
+                                </div>
+                                {log.thoughts && (
+                                    <p className="text-neutral-200 text-sm italic">"{log.thoughts}"</p>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         return (
@@ -420,20 +474,31 @@ const ReadingProgressGraph = ({ logs, bookTitle, coverUrl, isAbandoned }: { logs
         );
     }
 
-    const data = logs.map((log, i) => ({
-        uniqueId: `${log.date.seconds}-${i}`, // Ensure unique key for Recharts
-        displayDate: new Date(log.date.seconds * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-        page: log.page,
-        thoughts: log.thoughts
-    }));
+    // Process logs for graph
+    // We want multiple logs on the same day to show as a vertical line.
+    // So we map ALL logs, but give them the same 'displayDate' (and groupDate)
+    // which effectively acts as the X-axis category.
+    const data = logs.map((log, i) => {
+        const dateDate = new Date(log.date.seconds * 1000);
+        return {
+            uniqueId: `${log.date.seconds}-${i}`, // Unique key for React/Recharts dots
+            groupDate: dateDate.toLocaleDateString(), // Used for X-axis grouping
+            displayDate: dateDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            page: log.page,
+            thoughts: log.thoughts,
+            timestamp: log.date.seconds
+        };
+    }).sort((a, b) => a.timestamp - b.timestamp); // Ensure chronological order
 
     // If abandoned, add a drop-off point
     if (isAbandoned) {
         data.push({
             uniqueId: 'abandoned',
+            groupDate: 'Abandoned',
             displayDate: 'Abandoned',
             page: 0,
-            thoughts: 'Stopped reading'
+            thoughts: 'Stopped reading',
+            timestamp: Infinity
         });
     }
 
@@ -473,11 +538,9 @@ const ReadingProgressGraph = ({ logs, bookTitle, coverUrl, isAbandoned }: { logs
                     <LineChart data={data}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                         <XAxis
-                            dataKey="uniqueId"
-                            tickFormatter={(val) => {
-                                const item = data.find(d => d.uniqueId === val);
-                                return item ? item.displayDate : val;
-                            }}
+                            dataKey="displayDate"
+                            allowDuplicatedCategory={false}
+                            interval="preserveStartEnd"
                             stroke="#666"
                             tick={{ fill: '#888', fontSize: 12 }}
                             tickLine={{ stroke: '#333' }}
@@ -488,7 +551,7 @@ const ReadingProgressGraph = ({ logs, bookTitle, coverUrl, isAbandoned }: { logs
                             tickLine={{ stroke: '#333' }}
                             label={{ value: 'Page', angle: -90, position: 'insideLeft', fill: '#666' }}
                         />
-                        <Tooltip content={<CustomTooltip />} />
+                        <Tooltip content={<CustomTooltip />} shared={false} />
                         <Line
                             type="monotone"
                             dataKey="page"
@@ -511,6 +574,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
     const [isReviewing, setIsReviewing] = useState(false);
     const [readingLogs, setReadingLogs] = useState<ReadingLog[]>([]);
     const [showGraph, setShowGraph] = useState(false);
+    const [showLogHistory, setShowLogHistory] = useState(false);
     const [userReview, setUserReview] = useState("");
     const [hasLoadedLogs, setHasLoadedLogs] = useState(false);
 
@@ -608,6 +672,17 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                         <div className="w-32 h-48 md:w-48 md:h-72 bg-neutral-800 rounded-lg shadow-lg flex items-center justify-center border border-neutral-700">
                             <img src="/book-icon.png" alt="No Cover" className="w-16 h-16 object-contain opacity-50" />
                         </div>
+                    )}
+
+                    {/* View Logs Button for Current Books */}
+                    {userStatus === 'current' && !isVisiting && (
+                        <button
+                            onClick={() => setShowLogHistory(true)}
+                            className="mt-4 w-full bg-neutral-800 hover:bg-neutral-700 text-neutral-300 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-neutral-700"
+                        >
+                            <Clock size={16} />
+                            View Logs
+                        </button>
                     )}
                     <FriendsStatusOverlay friends={friendData} />
                 </div>
@@ -852,6 +927,13 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                     )}
                 </div>
             </div>
+            {/* Log History Modal */}
+            <LogHistoryModal
+                isOpen={showLogHistory}
+                onClose={() => setShowLogHistory(false)}
+                logs={readingLogs}
+                bookTitle={book.title || book.bookTitle}
+            />
         </div >
     );
 };
