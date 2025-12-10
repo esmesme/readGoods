@@ -43,20 +43,14 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     };
 }
 
-import { redirect } from 'next/navigation';
+import Redirect from './Redirect';
 
 export default async function SharePage(props: Props) {
     const searchParams = await props.searchParams;
     const userFid = searchParams.userFid as string;
 
-    if (userFid) {
-        redirect(`/?userFid=${userFid}`);
-    }
+    // Redirect to home with param, or just home if valid logic suggests
+    const target = userFid ? `/?userFid=${userFid}` : '/';
 
-    return (
-        <div style={{ padding: 20, fontFamily: 'sans-serif', textAlign: 'center', marginTop: '50px' }}>
-            <h1>Read Goods</h1>
-            <p>Redirecting to app...</p>
-        </div>
-    );
+    return <Redirect to={target} />;
 }
