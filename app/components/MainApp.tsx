@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { searchBooks, BookData, getBookDetails } from "@/lib/openLibrary";
 import {
     saveBookToFirestore,
@@ -1043,44 +1044,39 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     };
 
     // Deep Linking: Check URL for userFid on mount
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const params = new URLSearchParams(window.location.search);
-            const userFidParam = params.get('userFid');
-            if (userFidParam) {
-                const fid = parseInt(userFidParam);
-                if (!isNaN(fid) && fid !== effectiveUser?.fid) {
-                    // Fetch generic user info if possible, or just set FID and let the UI fetch details
-                    // For now, simpler to searchUsers or just set partial data
-                    // We'll try to fetch basic info via search/lookup if we had a direct usage
-                    // But our getUserBooks just needs FID. For display name, we might query firestore
-                    // Let's create a quick lookup helper or just set FID and show "User <FID>" temporarily
-                    // Better: use searchUsers to find exact match if we can, or getDoc from users collection
-                    // For now, let's set minimal data and let the fetch fill it?
-                    // Actually, we don't have a direct 'getUserProfile' export here, but we can use firestoreUtils
-                    // Let's just set the FID and let the UI handle valid FIDs.
-                    setViewedUser({ fid, username: '', displayName: `User ${fid}`, pfpUrl: '' });
+    const searchParams = useSearchParams();
 
-                    // Ideally we fetch the real profile. using the 'users' collection logic from firestoreUtils logic
-                    // We can reuse the same logic we use for friends list or searching
-                    // Let's do a quick fetch
-                    import('@/lib/firebase').then(async ({ db }) => {
-                        const { doc, getDoc } = await import('firebase/firestore');
-                        const userDoc = await getDoc(doc(db, 'users', fid.toString()));
-                        if (userDoc.exists()) {
-                            const userData = userDoc.data();
-                            setViewedUser({
-                                fid,
-                                username: userData.username || '',
-                                displayName: userData.displayName || `User ${fid}`,
-                                pfpUrl: userData.pfpUrl || ''
-                            });
-                        }
-                    });
-                }
+    useEffect(() => {
+        const userFidParam = searchParams.get('userFid');
+        if (userFidParam) {
+            const fid = parseInt(userFidParam);
+            // We set viewedUser even if it matches effectiveUser, to ensure consistent behavior
+            // or we strictly check mismatch.
+            // If fid === effectiveUser.fid, isVisiting will be false, which is correct.
+            // But we must ensure viewedUser isn't null if we want to be explicit? 
+            // Actually, keeping isVisiting false is fine.
+
+            if (!isNaN(fid) && fid !== effectiveUser?.fid) {
+                // Set temporary user data while fetching
+                setViewedUser({ fid, username: '', displayName: `User ${fid}`, pfpUrl: '' });
+
+                // Fetch real profile
+                import('@/lib/firebase').then(async ({ db }) => {
+                    const { doc, getDoc } = await import('firebase/firestore');
+                    const userDoc = await getDoc(doc(db, 'users', fid.toString()));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        setViewedUser({
+                            fid,
+                            username: userData.username || '',
+                            displayName: userData.displayName || `User ${fid}`,
+                            pfpUrl: userData.pfpUrl || ''
+                        });
+                    }
+                });
             }
         }
-    }, [effectiveUser?.fid]);
+    }, [effectiveUser?.fid, searchParams]);
 
     const handleShareLibrary = () => {
         if (!effectiveUser?.fid) return;
