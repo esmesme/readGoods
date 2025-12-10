@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { NeynarAPIClient, Configuration } from "@neynar/nodejs-sdk";
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
@@ -16,27 +15,29 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const config = new Configuration({
-            apiKey: apiKey,
+        const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, {
+            headers: {
+                "accept": "application/json",
+                "api_key": apiKey
+            }
         });
-        const client = new NeynarAPIClient(config);
 
-        // Fetch user data including score
-        // The SDK methods might vary slightly, based on docs:
-        // fetchBulkUsers takes { fids: [fid], viewerFid?: number }
-        // and returns { users: [...] }
-        const response = await client.fetchBulkUsers({ fids: [parseInt(fid)] });
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Neynar API error:", response.status, errorText);
+            return NextResponse.json({ error: "Failed to fetch from Neynar" }, { status: response.status });
+        }
 
-        const user = response.users[0];
+        const data = await response.json();
+        const user = data.users?.[0];
 
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // According to search results, score is likely in user.experimental.neynar_user_score
-        // But SDK types will guide us. If it's not strictly typed, we'll access it safely.
-        // Let's assume the user object has the structure described in docs.
-        const score = (user as any).experimental?.neynar_user_score ?? 0;
+        // Score logic: Check experimental features or user score
+        // Neynar response structure for score might vary, using safe access
+        const score = user.experimental?.neynar_user_score ?? 0;
 
         return NextResponse.json({ score });
 
