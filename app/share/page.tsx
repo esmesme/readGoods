@@ -43,7 +43,16 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     };
 }
 
-export default function SharePage() {
+import { redirect } from 'next/navigation';
+
+export default async function SharePage(props: Props) {
+    const searchParams = await props.searchParams;
+    const userFid = searchParams.userFid as string;
+
+    if (userFid) {
+        redirect(`/?userFid=${userFid}`);
+    }
+
     return (
         <div style={{ padding: 20, fontFamily: 'sans-serif', textAlign: 'center', marginTop: '50px' }}>
             <h1>Read Goods</h1>

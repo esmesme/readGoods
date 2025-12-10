@@ -1093,6 +1093,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         const shareUrl = new URL("https://read-goods.vercel.app/share");
         shareUrl.searchParams.set("userFid", user.fid.toString());
         shareUrl.searchParams.set("image", "https://read-goods.vercel.app/desired-icon.png");
+        shareUrl.searchParams.set("t", Date.now().toString()); // Cache busting
 
         shareToFarcaster(text, shareUrl.toString());
     };
