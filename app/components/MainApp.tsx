@@ -1215,8 +1215,9 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
         // Fetch reading logs if book is current or completed
         if (userStatus === 'current' || userStatus === 'completed') {
-            if (effectiveUser?.fid) {
-                const logs = await getReadingLogs(effectiveUser.fid, bookKey);
+            const targetFid = viewedUser?.fid || effectiveUser?.fid;
+            if (targetFid) {
+                const logs = await getReadingLogs(targetFid, bookKey);
                 setReadingLogs(logs);
             }
         } else {
