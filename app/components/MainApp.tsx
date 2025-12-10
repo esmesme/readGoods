@@ -1081,12 +1081,18 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         }
     }, [effectiveUser?.fid, searchParams]);
 
-    const handleShareLibrary = () => {
-        if (!effectiveUser?.fid) return;
-        const text = `Check out my library on Read Goods! 📚`;
+    const handleShareLibrary = (targetUser?: FarcasterUser | null) => {
+        const user = targetUser || effectiveUser;
+        if (!user?.fid) return;
+
+        const isSelf = user.fid === effectiveUser?.fid;
+        const text = isSelf
+            ? `Check out my library on Read Goods! 📚`
+            : `Check out ${user.displayName || user.username}'s library on Read Goods! 📚`;
+
         const shareUrl = new URL("https://read-goods.vercel.app/share");
-        shareUrl.searchParams.set("userFid", effectiveUser.fid.toString());
-        shareUrl.searchParams.set("image", "https://read-goods.vercel.app/desired-icon.png"); // Explicitly set the icon
+        shareUrl.searchParams.set("userFid", user.fid.toString());
+        shareUrl.searchParams.set("image", "https://read-goods.vercel.app/desired-icon.png");
 
         shareToFarcaster(text, shareUrl.toString());
     };
@@ -1674,18 +1680,27 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                 <span>Back to My Library</span>
                             </button>
 
-                            <div className="flex items-center space-x-4">
-                                {viewedUser.pfpUrl ? (
-                                    <img src={viewedUser.pfpUrl} alt={viewedUser.username} className="w-16 h-16 rounded-full border-2 border-neutral-700" />
-                                ) : (
-                                    <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center border-2 border-neutral-700">
-                                        <CircleUserRound size={32} className="text-neutral-500" />
+                            <div className="flex items-center space-x-4 w-full justify-between">
+                                <div className="flex items-center space-x-4">
+                                    {viewedUser.pfpUrl ? (
+                                        <img src={viewedUser.pfpUrl} alt={viewedUser.username} className="w-16 h-16 rounded-full border-2 border-neutral-700" />
+                                    ) : (
+                                        <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center border-2 border-neutral-700">
+                                            <CircleUserRound size={32} className="text-neutral-500" />
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white">{viewedUser.displayName || viewedUser.username}'s Library</h2>
+                                        <p className="text-neutral-400">Viewing user {viewedUser.username}</p>
                                     </div>
-                                )}
-                                <div>
-                                    <h2 className="text-2xl font-bold text-white">{viewedUser.displayName || viewedUser.username}'s Library</h2>
-                                    <p className="text-neutral-400">Viewing user {viewedUser.username}</p>
                                 </div>
+                                <button
+                                    onClick={() => handleShareLibrary(viewedUser)}
+                                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg border border-neutral-700 transition-colors flex items-center gap-2"
+                                >
+                                    <Share size={16} />
+                                    <span className="hidden sm:inline">Share Library</span>
+                                </button>
                             </div>
                         </div>
 
@@ -1718,7 +1733,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                             </button>
 
                             <button
-                                onClick={handleShareLibrary}
+                                onClick={() => handleShareLibrary(null)}
                                 className="flex items-center space-x-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-600/30 px-3 py-2 rounded-lg transition-all"
                             >
                                 <Share size={16} />
