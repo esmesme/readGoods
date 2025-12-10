@@ -1056,8 +1056,9 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             // But we must ensure viewedUser isn't null if we want to be explicit? 
             // Actually, keeping isVisiting false is fine.
 
-            if (!isNaN(fid) && fid !== effectiveUser?.fid) {
+            if (!isNaN(fid)) {
                 // Set temporary user data while fetching
+                // We always set it if the param exists, letting the UI decide if it counts as 'visiting'
                 setViewedUser({ fid, username: '', displayName: `User ${fid}`, pfpUrl: '' });
 
                 // Fetch real profile
@@ -1066,6 +1067,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     const userDoc = await getDoc(doc(db, 'users', fid.toString()));
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
+                        // Only update if we are still viewing this user (avoid race conditions if user navigated away closely)
+                        // Actually, setViewedUser is safe to call.
                         setViewedUser({
                             fid,
                             username: userData.username || '',
