@@ -17,4 +17,5 @@ export interface ReadingLog {
     page: number;
     thoughts?: string;
     date: any; // Timestamp
+    unit?: 'pages' | 'percent' | 'chapter';
 }

@@ -272,14 +272,32 @@ const FriendsStatusOverlay = ({ friends }: { friends: { userFid: number; status:
 const ReadingLogModal = ({ isOpen, onClose, onSubmit, bookTitle, isSaving }: any) => {
     const [page, setPage] = useState("");
     const [thoughts, setThoughts] = useState("");
+    const [unit, setUnit] = useState<'pages' | 'percent' | 'chapter'>('pages');
 
     if (!isOpen) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit({ page: parseInt(page), thoughts });
+        onSubmit({ page: parseInt(page), thoughts, unit });
         setPage("");
         setThoughts("");
+        setUnit('pages');
+    };
+
+    const getUnitLabel = () => {
+        switch (unit) {
+            case 'pages': return 'Current Page';
+            case 'percent': return 'Percentage';
+            case 'chapter': return 'Chapter Number';
+        }
+    };
+
+    const getUnitPlaceholder = () => {
+        switch (unit) {
+            case 'pages': return 'e.g. 125';
+            case 'percent': return 'e.g. 45';
+            case 'chapter': return 'e.g. 5';
+        }
     };
 
     return (
@@ -292,25 +310,49 @@ const ReadingLogModal = ({ isOpen, onClose, onSubmit, bookTitle, isSaving }: any
                     <X size={20} />
                 </button>
 
-                <h3 className="text-xl font-bold text-white mb-4">Log Pages</h3>
+                <h3 className="text-xl font-bold text-white mb-4">Log Progress</h3>
                 <p className="text-neutral-400 mb-6 text-sm">
                     Recording progress for <span className="text-white font-medium">{bookTitle}</span>
                 </p>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Unit Toggle */}
+                    <div className="bg-neutral-800 p-1 rounded-lg flex space-x-1">
+                        {(['pages', 'percent', 'chapter'] as const).map((type) => (
+                            <button
+                                key={type}
+                                type="button"
+                                onClick={() => { setUnit(type); setPage(''); }}
+                                className={`flex-1 py-1.5 px-2 text-xs font-medium rounded-md transition-all ${unit === type
+                                    ? 'bg-neutral-700 text-white shadow-sm'
+                                    : 'text-neutral-400 hover:text-neutral-200'
+                                    }`}
+                            >
+                                {type === 'pages' && 'Pages'}
+                                {type === 'percent' && '% Kindle'}
+                                {type === 'chapter' && 'Chapter'}
+                            </button>
+                        ))}
+                    </div>
+
                     <div>
                         <label className="block text-sm font-medium text-neutral-300 mb-1">
-                            Current Page
+                            {getUnitLabel()}
                         </label>
                         <input
                             type="number"
                             required
                             min="0"
+                            max={unit === 'percent' ? 100 : undefined}
                             value={page}
                             onChange={(e) => setPage(e.target.value)}
                             className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                            placeholder="e.g. 125"
+                            placeholder={getUnitPlaceholder()}
                         />
+                        <p className="mt-1.5 text-xs text-neutral-500 flex items-center">
+                            <span className="bg-neutral-800 px-1.5 py-0.5 rounded text-[10px] border border-neutral-700 mr-2 font-mono">123</span>
+                            Please enter numerals only (no symbols like %)
+                        </p>
                     </div>
 
                     <div>
@@ -1188,7 +1230,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         setShowLogBookDropdown(false);
     };
 
-    const handleSaveLog = async (logData: { page: number; thoughts?: string }) => {
+    const handleSaveLog = async (logData: { page: number; thoughts?: string; unit?: 'pages' | 'percent' | 'chapter' }) => {
         if (!loggingBook || !effectiveUser?.fid) return;
 
         setIsSaving(true);
