@@ -1,10 +1,11 @@
 import { Metadata } from 'next';
 
 type Props = {
-    searchParams: { [key: string]: string | string[] | undefined };
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+    const searchParams = await props.searchParams;
     const title = (searchParams.title as string) || "Read Goods";
     // User requested "desire-icon.png", assuming they meant "desired-icon.png" which exists
     const imageUrl = (searchParams.image as string) || "https://read-goods.vercel.app/desired-icon.png";
