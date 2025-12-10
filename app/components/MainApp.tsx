@@ -20,7 +20,7 @@ import {
 } from "@/lib/firestoreUtils";
 
 import { BookStatus, UserBook, ReadingLog } from "@/lib/types";
-import { sdk } from "@farcaster/frame-sdk";
+import { sdk } from "@farcaster/miniapp-sdk";
 import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen, Ban } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
