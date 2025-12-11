@@ -732,46 +732,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                         </div>
                     )}
                     {/* Actions - Only show if NOT visiting */}
-                    {!isVisiting && (
-                        <div className="flex flex-col gap-3 mb-6">
-                            {Object.keys(STATUS_CONFIG).filter(k => k !== 'none').map((statusKey) => {
-                                const config = STATUS_CONFIG[statusKey];
-                                const Icon = config.icon;
-                                const isSelected = userStatus === statusKey;
-                                return (
-                                    <button
-                                        key={statusKey}
-                                        onClick={() => onStatusChange(statusKey)}
-                                        className={`w-full flex items-center justify-center space-x-3 px-4 py-3 rounded-xl border transition-all ${isSelected
-                                            ? `${config.bgColor} ${config.color} ${config.borderColor} shadow-sm ring-1 ring-white/10`
-                                            : 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:bg-neutral-700'
-                                            }`}
-                                    >
-                                        <Icon size={18} />
-                                        <span>{config.label}</span>
-                                    </button>
-                                );
-                            })}
 
-                            {userStatus && userStatus !== 'none' && (
-                                <button
-                                    onClick={() => onStatusChange('none')}
-                                    className="w-full flex items-center justify-center space-x-3 px-4 py-3 rounded-xl border border-red-900/30 bg-red-900/10 text-red-400 hover:bg-red-900/20 transition-all shadow-sm"
-                                >
-                                    <Trash2 size={18} />
-                                    <span>Remove</span>
-                                </button>
-                            )}
-
-                            <button
-                                onClick={handleShare}
-                                className="w-full flex items-center justify-center space-x-3 px-4 py-3 rounded-xl border border-neutral-700 bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-all shadow-sm"
-                            >
-                                <Share size={18} />
-                                <span>Share</span>
-                            </button>
-                        </div>
-                    )}
 
                     {/* Reading Graph Logic */}
                     {(userStatus === 'completed' || userStatus === 'abandoned') && (
@@ -856,6 +817,48 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                                     )}
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {/* Actions - Only show if NOT visiting (Moved to bottom) */}
+                    {!isVisiting && (
+                        <div className="flex flex-col gap-3 mb-6">
+                            {Object.keys(STATUS_CONFIG).filter(k => k !== 'none').map((statusKey) => {
+                                const config = STATUS_CONFIG[statusKey];
+                                const Icon = config.icon;
+                                const isSelected = userStatus === statusKey;
+                                return (
+                                    <button
+                                        key={statusKey}
+                                        onClick={() => onStatusChange(statusKey)}
+                                        className={`w-full flex items-center justify-center space-x-3 px-4 py-3 rounded-xl border transition-all ${isSelected
+                                            ? `${config.bgColor} ${config.color} ${config.borderColor} shadow-sm ring-1 ring-white/10`
+                                            : 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:bg-neutral-700'
+                                            }`}
+                                    >
+                                        <Icon size={18} />
+                                        <span>{config.label}</span>
+                                    </button>
+                                );
+                            })}
+
+                            {userStatus && userStatus !== 'none' && (
+                                <button
+                                    onClick={() => onStatusChange('none')}
+                                    className="w-full flex items-center justify-center space-x-3 px-4 py-3 rounded-xl border border-red-900/30 bg-red-900/10 text-red-400 hover:bg-red-900/20 transition-all shadow-sm"
+                                >
+                                    <Trash2 size={18} />
+                                    <span>Remove</span>
+                                </button>
+                            )}
+
+                            <button
+                                onClick={handleShare}
+                                className="w-full flex items-center justify-center space-x-3 px-4 py-3 rounded-xl border border-neutral-700 bg-neutral-800 text-neutral-300 hover:bg-neutral-700 transition-all shadow-sm"
+                            >
+                                <Share size={18} />
+                                <span>Share</span>
+                            </button>
                         </div>
                     )}
 
