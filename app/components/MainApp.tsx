@@ -246,7 +246,7 @@ const FriendsStatusOverlay = ({ friends }: { friends: { userFid: number; status:
     if (statuses.length === 0) return null;
 
     return (
-        <div className="absolute top-0 right-0 z-10 flex -space-x-2">
+        <div className="absolute top-2 right-2 z-10 flex -space-x-2">
             {statuses.map((status, index) => {
                 const config = STATUS_CONFIG[status];
                 if (!config) return null;
@@ -696,20 +696,20 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
 
                     {/* Log Pages & View Logs Buttons */}
                     {userStatus === 'current' && !isVisiting && (
-                        <div className="mt-4 flex gap-3 w-full max-w-[200px]">
+                        <div className="mt-4 flex gap-3 w-full max-w-[240px]">
                             <button
                                 onClick={() => onLogProgress(book)}
                                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                             >
                                 <BookOpen size={16} />
-                                <span className="whitespace-nowrap">Log</span>
+                                <span className="whitespace-nowrap">Log Pages</span>
                             </button>
                             <button
                                 onClick={() => setShowLogHistory(true)}
                                 className="flex-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-neutral-700"
                             >
                                 <Clock size={16} />
-                                <span className="whitespace-nowrap">Logs</span>
+                                <span className="whitespace-nowrap">View Logs</span>
                             </button>
                         </div>
                     )}
