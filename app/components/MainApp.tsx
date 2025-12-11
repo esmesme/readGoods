@@ -691,14 +691,24 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                     )}
 
                     {/* View Logs Button for Current Books */}
+                    {/* Log Pages & View Logs Buttons */}
                     {userStatus === 'current' && !isVisiting && (
-                        <button
-                            onClick={() => setShowLogHistory(true)}
-                            className="mt-4 w-full bg-neutral-800 hover:bg-neutral-700 text-neutral-300 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-neutral-700"
-                        >
-                            <Clock size={16} />
-                            View Logs
-                        </button>
+                        <div className="mt-4 flex gap-2">
+                            <button
+                                onClick={() => onLogProgress(book)}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                            >
+                                <BookOpen size={16} />
+                                Log Pages
+                            </button>
+                            <button
+                                onClick={() => setShowLogHistory(true)}
+                                className="flex-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-neutral-700"
+                            >
+                                <Clock size={16} />
+                                View Logs
+                            </button>
+                        </div>
                     )}
                     <FriendsStatusOverlay friends={friendData} />
                 </div>
@@ -795,20 +805,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                     )}
 
                     {/* Log Progress - Only if Current and NOT visiting */}
-                    {!isVisiting && userStatus === 'current' && (
-                        <div className="mb-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-800">
-                            <h4 className="text-white font-semibold mb-2 flex items-center">
-                                <BookOpen size={18} className="mr-2 text-blue-400" />
-                                Update Progress
-                            </h4>
-                            <button
-                                onClick={() => onLogProgress(book)}
-                                className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
-                            >
-                                Log Pages Read
-                            </button>
-                        </div>
-                    )}
+
 
                     {/* User Review */}
                     {(userStatus === 'completed' || isVisiting) && (
