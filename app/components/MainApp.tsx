@@ -1340,7 +1340,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         setIsSaving(true);
         try {
             await addReadingLog(effectiveUser.fid, loggingBook.bookKey, logData);
-            showToast("Progress logged!", "success");
+            showToast("Your entry has been logged", "success");
             setIsLoggingModalOpen(false);
 
             // Refresh logs if we are viewing this book
