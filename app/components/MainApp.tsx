@@ -648,7 +648,22 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
         } else if (userStatus === 'desired') {
             text = `I just put ${title} on my reading list. Any wanna do a book club?`;
         }
-        shareToFarcaster(text);
+
+        const ownerFid = isVisiting ? viewedUser?.fid : currentUserFid;
+        if (!ownerFid) {
+            shareToFarcaster(text);
+            return;
+        }
+
+        const shareUrl = new URL("https://read-goods.vercel.app/share");
+        shareUrl.searchParams.set("userFid", ownerFid.toString());
+        shareUrl.searchParams.set("title", title);
+        if (coverUrl) {
+            shareUrl.searchParams.set("image", coverUrl);
+        }
+        shareUrl.searchParams.set("t", Date.now().toString()); // Cache busting
+
+        shareToFarcaster(text, shareUrl.toString());
     };
 
     return (
