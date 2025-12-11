@@ -21,8 +21,9 @@ import {
 
 import { BookStatus, UserBook, ReadingLog } from "@/lib/types";
 import { sdk } from "@farcaster/miniapp-sdk";
-import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen, Ban } from 'lucide-react';
+import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen, Ban, MessageCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import FeedView from './FeedView'; // Import FeedView
 
 interface FarcasterUser {
     fid: number;
@@ -100,7 +101,7 @@ const AbandonedIcon = ({ size = 24, className = "" }: { size?: number, className
     />
 );
 
-const STATUS_CONFIG: Record<string, { icon: any; label: string; color: string; bgColor: string; borderColor: string }> = {
+export const STATUS_CONFIG: Record<string, { icon: any; label: string; color: string; bgColor: string; borderColor: string }> = {
     current: {
         icon: ReadingIcon,
         label: "Reading",
@@ -1026,7 +1027,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     const mobileDropdownRef = useRef<HTMLDivElement>(null);
     const [userBooks, setUserBooks] = useState<UserBook[]>([]);
     const [selectedBook, setSelectedBook] = useState<(BookData & { userStatus?: BookStatus }) | null>(null);
-    const selectedBookKeyRef = useRef<string | null>(null);
+    const selectedBookKeyRef = useRef<string | null>(selectedBook?.key || null);
     const [bookDetails, setBookDetails] = useState<any>(null);
     const [bookUsers, setBookUsers] = useState<{ userFid: number; status: BookStatus }[]>([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
@@ -1053,7 +1054,37 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     // Fallback user for development/testing if not in Farcaster frame
     const effectiveUser = farcasterUser?.fid ? farcasterUser : { fid: 999999, username: 'dev_user' };
     const [viewedUser, setViewedUser] = useState<FarcasterUser | null>(null); // New state for viewed user
-    const isVisiting = viewedUser?.fid !== effectiveUser?.fid && viewedUser?.fid !== undefined; // Determine if visiting another user's library
+    const isVisiting = viewedUser?.fid !== effectiveUser?.fid && viewedUser?.fid !== undefined;    // Tab State
+    const [activeTab, setActiveTab] = useState<'feed' | 'library'>('feed');
+
+    const renderTabs = () => (
+        <div className="flex justify-center space-x-1 mb-6 bg-neutral-900/50 p-1 rounded-xl border border-neutral-800 w-full max-w-md mx-auto relative z-10">
+            <button
+                onClick={() => { setActiveTab('feed'); setViewedUser(null); setSelectedBook(null); }}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${activeTab === 'feed'
+                    ? 'bg-neutral-800 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+                    }`}
+            >
+                <div className="flex items-center gap-2">
+                    <MessageCircle size={16} />
+                    <span>Live Feed</span>
+                </div>
+            </button>
+            <button
+                onClick={() => { setActiveTab('library'); setViewedUser(null); setSelectedBook(null); }}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${activeTab === 'library'
+                    ? 'bg-neutral-800 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+                    }`}
+            >
+                <div className="flex items-center gap-2">
+                    <BookCheck size={16} />
+                    <span>My Library</span>
+                </div>
+            </button>
+        </div>
+    );
 
     const showToast = (message: string, type: 'success' | 'error' | 'default' = 'success') => {
         setToast({ message, type });
@@ -1097,6 +1128,14 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             }
         }
     }, [effectiveUser?.fid, searchParams]);
+
+
+    // Effect to switch to library tab if viewing a user or selecting a book via deep link
+    useEffect(() => {
+        if (selectedBook || viewedUser) {
+            setActiveTab('library');
+        }
+    }, [selectedBook, viewedUser]);
 
     const handleShareLibrary = (targetUser?: FarcasterUser | null) => {
         const user = targetUser || effectiveUser;
@@ -1452,39 +1491,6 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         }
     };
 
-    if (selectedBook) {
-        return (
-            <div className="min-h-screen bg-[#0a0a0a] p-4">
-                <BookCard
-                    book={{ ...selectedBook, ...bookDetails, logs: readingLogs }}
-                    userStatus={selectedBook.userStatus}
-                    friendData={bookUsers}
-                    onStatusChange={handleStatusChange}
-                    onBack={() => {
-                        setSelectedBook(null);
-                        setBookDetails(null);
-                        setReadingLogs([]);
-                        selectedBookKeyRef.current = null;
-                    }}
-                    isSaving={isSaving}
-                    onLogProgress={handleLogProgress}
-                    currentUserFid={effectiveUser?.fid}
-                    isVisiting={!!viewedUser && viewedUser.fid !== effectiveUser?.fid}
-                    viewedUser={viewedUser}
-                    setViewedUser={setViewedUser}
-                />
-
-                <ReadingLogModal
-                    isOpen={isLoggingModalOpen}
-                    onClose={() => setIsLoggingModalOpen(false)}
-                    onSubmit={handleSaveLog}
-                    bookTitle={loggingBook?.bookTitle || "Book"}
-                    isSaving={isSaving}
-                />
-            </div>
-        );
-    }
-
     return (
         <div className="min-h-screen bg-[#0a0a0a] font-sans">
             {/* Top Nav */}
@@ -1638,149 +1644,115 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         </div>
                     )}
                 </div>
+            </div>
 
 
-                {/* Dropdown Menu */}
-                {/* Backdrop */}
-                <div
-                    className={`fixed inset-0 bg-black z-40 transition-opacity duration-300 ${menuOpen ? 'bg-opacity-20' : 'bg-opacity-0 pointer-events-none'}`}
-                    onClick={() => setMenuOpen(false)}
-                />
-                {/* Menu */}
-                <div
-                    className="fixed top-0 left-0 w-48 bg-[#0a0a0a] h-screen z-50 shadow-2xl transition-transform duration-300 ease-in-out border-r border-neutral-800"
-                    style={{ transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)' }}
-                >
-                    <div className="p-4">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="font-bold text-lg text-white">Menu</h2>
+            {/* Dropdown Menu */}
+            {/* Backdrop */}
+            <div
+                className={`fixed inset-0 bg-black z-40 transition-opacity duration-300 ${menuOpen ? 'bg-opacity-20' : 'bg-opacity-0 pointer-events-none'}`}
+                onClick={() => setMenuOpen(false)}
+            />
+            {/* Menu */}
+            <div
+                className="fixed top-0 left-0 w-48 bg-[#0a0a0a] h-screen z-50 shadow-2xl transition-transform duration-300 ease-in-out border-r border-neutral-800"
+                style={{ transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)' }}
+            >
+                <div className="p-4">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="font-bold text-lg text-white">Menu</h2>
+                        <button
+                            onClick={() => setMenuOpen(false)}
+                            className="text-neutral-400 hover:text-white p-1"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div className="space-y-1">
+                        {['all', 'completed', 'current', 'desired'].map(f => (
                             <button
-                                onClick={() => setMenuOpen(false)}
-                                className="text-neutral-400 hover:text-white p-1"
+                                key={f}
+                                onClick={() => {
+                                    setFilter(f as any);
+                                    setMenuOpen(false);
+                                }}
+                                className={`block w-full text-left px-3 py-2 rounded-md transition-colors text-sm ${filter === f
+                                    ? 'bg-neutral-800 text-white font-semibold'
+                                    : 'text-neutral-400 hover:bg-neutral-800'
+                                    }`}
                             >
-                                ✕
+                                {f.charAt(0).toUpperCase() + f.slice(1)}
                             </button>
-                        </div>
-                        <div className="space-y-1">
-                            {['all', 'completed', 'current', 'desired'].map(f => (
-                                <button
-                                    key={f}
-                                    onClick={() => {
-                                        setFilter(f as any);
-                                        setMenuOpen(false);
-                                    }}
-                                    className={`block w-full text-left px-3 py-2 rounded-md transition-colors text-sm ${filter === f
-                                        ? 'bg-neutral-800 text-white font-semibold'
-                                        : 'text-neutral-400 hover:bg-neutral-800'
-                                        }`}
-                                >
-                                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                                </button>
-                            ))}
-                        </div>
+                        ))}
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-6xl mx-auto p-4 md:p-8">
+            <header className="max-w-6xl mx-auto p-4 md:p-8">
+                <div className="relative mb-12 flex gap-3">
+                    <button
+                        onClick={handleHomeLogClick}
+                        className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors border border-neutral-700"
+                    >
+                        <BookOpen size={16} />
+                        <span className="text-sm font-medium">Log Pages</span>
+                    </button>
 
+                    <button
+                        onClick={() => handleShareLibrary(null)}
+                        className="flex items-center space-x-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-600/30 px-3 py-2 rounded-lg transition-all"
+                    >
+                        <Share size={16} />
+                        <span className="text-sm font-medium">Share my library</span>
+                    </button>
 
-                {/* Content: Visiting vs My Library */}
-                {viewedUser && viewedUser.fid !== effectiveUser?.fid ? (
-                    // --- VISITING VIEW ---
-                    <div className="space-y-12">
-                        <div className="flex flex-col items-start gap-6 mb-8">
-                            <button
-                                onClick={() => setViewedUser(effectiveUser)}
-                                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg border border-neutral-700 transition-colors flex items-center gap-2"
-                            >
-                                <span>←</span>
-                                <span>Back to My Library</span>
-                            </button>
-
-                            <div className="flex items-center space-x-4 w-full justify-between">
-                                <div className="flex items-center space-x-4">
-                                    {viewedUser.pfpUrl ? (
-                                        <img src={viewedUser.pfpUrl} alt={viewedUser.username} className="w-16 h-16 rounded-full border-2 border-neutral-700" />
-                                    ) : (
-                                        <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center border-2 border-neutral-700">
-                                            <CircleUserRound size={32} className="text-neutral-500" />
-                                        </div>
-                                    )}
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-white">{viewedUser.displayName || viewedUser.username}'s Library</h2>
-                                        <p className="text-neutral-400">Viewing user {viewedUser.username}</p>
-                                    </div>
-                                </div>
+                    {showLogBookDropdown && (
+                        <div className="absolute top-full left-0 mt-2 w-64 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 py-1">
+                            {userBooks.filter(b => b.status === 'current').map(book => (
                                 <button
-                                    onClick={() => handleShareLibrary(viewedUser)}
-                                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg border border-neutral-700 transition-colors flex items-center gap-2"
+                                    key={book.bookKey}
+                                    onClick={() => handleLogProgress(book)}
+                                    className="w-full text-left px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors truncate"
                                 >
-                                    <Share size={16} />
-                                    <span className="hidden sm:inline">Share Library</span>
+                                    {book.bookTitle}
                                 </button>
-                            </div>
+                            ))}
                         </div>
+                    )}
+                </div>
+            </header>
 
-                        {/* Sections */}
-                        {['current', 'completed', 'desired', 'abandoned'].map((status) => (
-                            <StatusBookSection
-                                key={status}
-                                status={status}
-                                books={userBooks.filter(b => b.status === status)}
-                                onBookClick={handleBookClick}
-                            />
-                        ))}
+            <main className="flex-grow flex flex-col px-4 md:px-8 py-6 max-w-4xl mx-auto w-full relative z-0">
+                {/* Render Tab Navigation */}
+                {!selectedBook && !isVisiting && renderTabs()}
 
-                        {userBooks.length === 0 && (
-                            <div className="text-center py-20 text-neutral-500">
-                                This user hasn't added any books yet.
-                            </div>
-                        )}
+                {/* Feed View */}
+                {activeTab === 'feed' && !selectedBook && !isVisiting ? (
+                    <div className="w-full">
+                        <FeedView onNavigateToUser={(fid) => {
+                            // Fetch full profile first then switch
+                            import('@/lib/firebase').then(async ({ db }) => {
+                                const { doc, getDoc } = await import('firebase/firestore');
+                                const userDoc = await getDoc(doc(db, 'users', fid.toString()));
+                                if (userDoc.exists()) {
+                                    const u = userDoc.data();
+                                    setViewedUser({
+                                        fid,
+                                        username: u.username,
+                                        displayName: u.displayName,
+                                        pfpUrl: u.pfpUrl
+                                    });
+                                    setActiveTab('library');
+                                } else {
+                                    // Fallback
+                                    setViewedUser({ fid, username: '', displayName: `User ${fid}`, pfpUrl: '' });
+                                    setActiveTab('library');
+                                }
+                            });
+                        }} />
                     </div>
                 ) : (
-                    // --- MY LIBRARY VIEW (Existing) ---
-                    <div>
-                        <div className="relative mb-12 flex gap-3">
-                            <button
-                                onClick={handleHomeLogClick}
-                                className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors border border-neutral-700"
-                            >
-                                <BookOpen size={16} />
-                                <span className="text-sm font-medium">Log Pages</span>
-                            </button>
-
-                            <button
-                                onClick={() => handleShareLibrary(null)}
-                                className="flex items-center space-x-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-600/30 px-3 py-2 rounded-lg transition-all"
-                            >
-                                <Share size={16} />
-                                <span className="text-sm font-medium">Share my library</span>
-                            </button>
-
-                            {showLogBookDropdown && (
-                                <div className="absolute top-full left-0 mt-2 w-64 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 py-1">
-                                    {userBooks.filter(b => b.status === 'current').map(book => (
-                                        <button
-                                            key={book.bookKey}
-                                            onClick={() => handleLogProgress(book)}
-                                            className="w-full text-left px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors truncate"
-                                        >
-                                            {book.bookTitle}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                            <div>
-                                <h2 className="text-2xl font-bold text-white tracking-tight">Your Library</h2>
-                                <p className="text-neutral-400 mt-1">{getLibraryTagline()}</p>
-                            </div>
-                        </div>
-
-                        {/* Filters */}
+                    <>
                         <div className="flex space-x-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
                             <button
                                 onClick={() => setFilter('all')}
@@ -1861,108 +1833,110 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                 {searchQuery ? 'No books found matching your search.' : 'Your library is empty. Start adding books above!'}
                             </div>
                         )}
-                    </div>
+                    </>
                 )}
-            </div>
+            </main>
 
             {/* Manual Entry Modal */}
-            {showManualEntry && (
-                <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 overflow-y-auto py-4">
-                    <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-6 w-full max-w-md shadow-2xl relative my-auto">
-                        <button
-                            onClick={() => setShowManualEntry(false)}
-                            className="absolute top-4 right-4 text-neutral-400 hover:text-white"
-                        >
-                            <X size={20} />
-                        </button>
+            {
+                showManualEntry && (
+                    <div className="fixed inset-0 bg-black/80 flex items-start justify-center z-50 overflow-y-auto py-4">
+                        <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-6 w-full max-w-md shadow-2xl relative my-auto">
+                            <button
+                                onClick={() => setShowManualEntry(false)}
+                                className="absolute top-4 right-4 text-neutral-400 hover:text-white"
+                            >
+                                <X size={20} />
+                            </button>
 
-                        <h3 className="text-xl font-bold text-white mb-6">Add Manual Entry</h3>
+                            <h3 className="text-xl font-bold text-white mb-6">Add Manual Entry</h3>
 
-                        <form onSubmit={handleManualBookSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-neutral-300 mb-1">
-                                    Book Title *
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={manualBookForm.title}
-                                    onChange={(e) => setManualBookForm({ ...manualBookForm, title: e.target.value })}
-                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder="Enter book title"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-neutral-300 mb-1">
-                                    Author *
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={manualBookForm.author}
-                                    onChange={(e) => setManualBookForm({ ...manualBookForm, author: e.target.value })}
-                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder="Enter author name"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
+                            <form onSubmit={handleManualBookSubmit} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-neutral-300 mb-1">
-                                        Year (Optional)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={manualBookForm.year}
-                                        onChange={(e) => setManualBookForm({ ...manualBookForm, year: e.target.value })}
-                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="YYYY"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-neutral-300 mb-1">
-                                        Genre (Optional)
+                                        Book Title *
                                     </label>
                                     <input
                                         type="text"
-                                        value={manualBookForm.genre}
-                                        onChange={(e) => setManualBookForm({ ...manualBookForm, genre: e.target.value })}
+                                        required
+                                        value={manualBookForm.title}
+                                        onChange={(e) => setManualBookForm({ ...manualBookForm, title: e.target.value })}
                                         className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                        placeholder="Fiction, Sci-Fi..."
+                                        placeholder="Enter book title"
                                     />
                                 </div>
-                            </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-neutral-300 mb-1">
-                                    Description (Optional)
-                                </label>
-                                <textarea
-                                    value={manualBookForm.description}
-                                    onChange={(e) => setManualBookForm({ ...manualBookForm, description: e.target.value })}
-                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
-                                    placeholder="Brief description of the book..."
-                                />
-                            </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-300 mb-1">
+                                        Author *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={manualBookForm.author}
+                                        onChange={(e) => setManualBookForm({ ...manualBookForm, author: e.target.value })}
+                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Enter author name"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-neutral-300 mb-1">
+                                            Year (Optional)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={manualBookForm.year}
+                                            onChange={(e) => setManualBookForm({ ...manualBookForm, year: e.target.value })}
+                                            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            placeholder="YYYY"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-neutral-300 mb-1">
+                                            Genre (Optional)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={manualBookForm.genre}
+                                            onChange={(e) => setManualBookForm({ ...manualBookForm, genre: e.target.value })}
+                                            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                            placeholder="Fiction, Sci-Fi..."
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-300 mb-1">
+                                        Description (Optional)
+                                    </label>
+                                    <textarea
+                                        value={manualBookForm.description}
+                                        onChange={(e) => setManualBookForm({ ...manualBookForm, description: e.target.value })}
+                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
+                                        placeholder="Brief description of the book..."
+                                    />
+                                </div>
 
 
 
-                            <button
-                                type="submit"
-                                disabled={isSaving}
-                                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-lg transition-all transform active:scale-[0.98] mt-4 flex justify-center items-center"
-                            >
-                                {isSaving ? (
-                                    <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    "Add Book"
-                                )}
-                            </button>
-                        </form>
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-lg transition-all transform active:scale-[0.98] mt-4 flex justify-center items-center"
+                                >
+                                    {isSaving ? (
+                                        <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        "Add Book"
+                                    )}
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <ReadingLogModal
                 isOpen={isLoggingModalOpen}
@@ -1978,7 +1952,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 type={toast.type}
                 onClose={() => setToast({ message: '', type: '' })}
             />
-        </div>
+        </div >
     );
 }
 

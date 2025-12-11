@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc, addDoc, updateDoc, runTransaction } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc, addDoc, updateDoc, runTransaction, orderBy, limit } from 'firebase/firestore';
 import { BookData } from './openLibrary';
 import { BookStatus, UserBook, ReadingLog } from './types';
 
@@ -236,6 +236,48 @@ export async function addReadingLog(userFid: number, bookKey: string, logData: {
     } catch (error) {
         console.error('Error adding reading log:', error);
         throw error;
+    }
+}
+
+export async function getGlobalReviews(limitCount: number = 20): Promise<any[]> {
+    try {
+        const q = query(
+            collection(db, USER_BOOKS_COLLECTION),
+            where("review", "!=", ""), // Only get docs with non-empty reviews
+            orderBy("updatedAt", "desc"),
+            limit(limitCount)
+        );
+
+        const querySnapshot = await getDocs(q);
+        const reviews: any[] = [];
+
+        for (const doc of querySnapshot.docs) {
+            const data = doc.data();
+            reviews.push({
+                ...data,
+                id: doc.id
+            });
+        }
+
+        return reviews;
+    } catch (error) {
+        console.error("Error fetching global reviews:", error);
+        return [];
+    }
+}
+
+
+export async function getUserProfile(fid: number): Promise<any | null> {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, fid.toString());
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+            return userDoc.data();
+        }
+        return null;
+    } catch (error) {
+        console.error("Error getting user profile:", error);
+        return null;
     }
 }
 
