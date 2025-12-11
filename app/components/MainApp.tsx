@@ -677,40 +677,42 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
 
             <div className="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-8">
                 {/* Book Cover */}
-                <div className="relative flex-shrink-0 mx-auto md:mx-0">
-                    {coverUrl ? (
-                        <img
-                            src={coverUrl}
-                            alt={`${book.title || book.bookTitle} cover`}
-                            className="w-32 h-48 md:w-48 md:h-72 object-cover rounded-lg shadow-lg border border-neutral-800"
-                        />
-                    ) : (
-                        <div className="w-32 h-48 md:w-48 md:h-72 bg-neutral-800 rounded-lg shadow-lg flex items-center justify-center border border-neutral-700">
-                            <img src="/book-icon.png" alt="No Cover" className="w-16 h-16 object-contain opacity-50" />
-                        </div>
-                    )}
+                {/* Book Cover Column */}
+                <div className="flex flex-col items-center mx-auto md:mx-0">
+                    <div className="relative w-max">
+                        {coverUrl ? (
+                            <img
+                                src={coverUrl}
+                                alt={`${book.title || book.bookTitle} cover`}
+                                className="w-32 h-48 md:w-48 md:h-72 object-cover rounded-lg shadow-lg border border-neutral-800"
+                            />
+                        ) : (
+                            <div className="w-32 h-48 md:w-48 md:h-72 bg-neutral-800 rounded-lg shadow-lg flex items-center justify-center border border-neutral-700">
+                                <img src="/book-icon.png" alt="No Cover" className="w-16 h-16 object-contain opacity-50" />
+                            </div>
+                        )}
+                        <FriendsStatusOverlay friends={friendData} />
+                    </div>
 
-                    {/* View Logs Button for Current Books */}
                     {/* Log Pages & View Logs Buttons */}
                     {userStatus === 'current' && !isVisiting && (
-                        <div className="mt-4 flex gap-2">
+                        <div className="mt-4 flex gap-3 w-full max-w-[200px]">
                             <button
                                 onClick={() => onLogProgress(book)}
-                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                             >
                                 <BookOpen size={16} />
-                                Log Pages
+                                <span className="whitespace-nowrap">Log</span>
                             </button>
                             <button
                                 onClick={() => setShowLogHistory(true)}
-                                className="flex-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-neutral-700"
+                                className="flex-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 border border-neutral-700"
                             >
                                 <Clock size={16} />
-                                View Logs
+                                <span className="whitespace-nowrap">Logs</span>
                             </button>
                         </div>
                     )}
-                    <FriendsStatusOverlay friends={friendData} />
                 </div>
 
                 {/* Book Details */}
