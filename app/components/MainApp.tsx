@@ -1837,6 +1837,51 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 )}
             </main>
 
+
+            {/* BOOK DETAILS MODAL */}
+            {selectedBook && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="w-full max-w-lg bg-[#111] rounded-2xl border border-neutral-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                        {/* Header */}
+                        <div className="p-4 border-b border-neutral-800 flex items-center justify-between bg-[#0a0a0a]">
+                            <h2 className="text-lg font-semibold text-white truncate pr-4">Book Details</h2>
+                            <button
+                                onClick={() => {
+                                    setSelectedBook(null);
+                                    setBookDetails(null);
+                                    setReadingLogs([]);
+                                    selectedBookKeyRef.current = null;
+                                }}
+                                className="p-2 text-neutral-400 hover:text-white bg-neutral-800/50 hover:bg-neutral-800 rounded-full transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="overflow-y-auto overflow-x-hidden p-0 custom-scrollbar">
+                            <BookCard
+                                book={{ ...selectedBook, ...bookDetails, logs: readingLogs }}
+                                userStatus={selectedBook.userStatus}
+                                friendData={bookUsers}
+                                onStatusChange={handleStatusChange}
+                                onBack={() => {
+                                    setSelectedBook(null);
+                                    setBookDetails(null);
+                                    setReadingLogs([]);
+                                    selectedBookKeyRef.current = null;
+                                }}
+                                isSaving={isSaving}
+                                onLogProgress={handleLogProgress}
+                                currentUserFid={effectiveUser?.fid}
+                                isVisiting={!!viewedUser && viewedUser.fid !== effectiveUser?.fid}
+                                viewedUser={viewedUser}
+                                setViewedUser={setViewedUser}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Manual Entry Modal */}
             {
                 showManualEntry && (
