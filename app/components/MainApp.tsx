@@ -1690,20 +1690,27 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
             <header className="max-w-6xl mx-auto p-4 md:p-8">
                 <div className="relative mb-12 flex gap-3">
-                    <button
-                        onClick={handleHomeLogClick}
-                        className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors border border-neutral-700"
-                    >
-                        <BookOpen size={16} />
-                        <span className="text-sm font-medium">Log Pages</span>
-                    </button>
+                    {!isVisiting && (
+                        <button
+                            onClick={handleHomeLogClick}
+                            className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors border border-neutral-700"
+                        >
+                            <BookOpen size={16} />
+                            <span className="text-sm font-medium">Log Pages</span>
+                        </button>
+                    )}
 
                     <button
-                        onClick={() => handleShareLibrary(null)}
+                        onClick={() => handleShareLibrary(isVisiting ? viewedUser : null)}
                         className="flex items-center space-x-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-600/30 px-3 py-2 rounded-lg transition-all"
                     >
                         <Share size={16} />
-                        <span className="text-sm font-medium">Share my library</span>
+                        <span className="text-sm font-medium">
+                            {isVisiting
+                                ? `Share ${viewedUser?.displayName || viewedUser?.username || 'user'}'s library`
+                                : "Share my library"
+                            }
+                        </span>
                     </button>
 
                     {showLogBookDropdown && (
