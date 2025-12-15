@@ -1774,27 +1774,30 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 {/* Feed View */}
                 {activeTab === 'feed' && !selectedBook && !isVisiting ? (
                     <div className="w-full">
-                        <FeedView onNavigateToUser={(fid) => {
-                            // Fetch full profile first then switch
-                            import('@/lib/firebase').then(async ({ db }) => {
-                                const { doc, getDoc } = await import('firebase/firestore');
-                                const userDoc = await getDoc(doc(db, 'users', fid.toString()));
-                                if (userDoc.exists()) {
-                                    const u = userDoc.data();
-                                    setViewedUser({
-                                        fid,
-                                        username: u.username,
-                                        displayName: u.displayName,
-                                        pfpUrl: u.pfpUrl
-                                    });
-                                    setActiveTab('library');
-                                } else {
-                                    // Fallback
-                                    setViewedUser({ fid, username: '', displayName: `User ${fid}`, pfpUrl: '' });
-                                    setActiveTab('library');
-                                }
-                            });
-                        }} />
+                        <FeedView
+                            onNavigateToUser={(fid) => {
+                                // Fetch full profile first then switch
+                                import('@/lib/firebase').then(async ({ db }) => {
+                                    const { doc, getDoc } = await import('firebase/firestore');
+                                    const userDoc = await getDoc(doc(db, 'users', fid.toString()));
+                                    if (userDoc.exists()) {
+                                        const u = userDoc.data();
+                                        setViewedUser({
+                                            fid,
+                                            username: u.username,
+                                            displayName: u.displayName,
+                                            pfpUrl: u.pfpUrl
+                                        });
+                                        setActiveTab('library');
+                                    } else {
+                                        // Fallback
+                                        setViewedUser({ fid, username: '', displayName: `User ${fid}`, pfpUrl: '' });
+                                        setActiveTab('library');
+                                    }
+                                });
+                            }}
+                            onBookClick={handleBookClick}
+                        />
                     </div>
                 ) : activeTab === 'readerboard' ? (
                     <div className="w-full">

@@ -5,9 +5,10 @@ import { STATUS_CONFIG } from './MainApp';
 
 interface FeedViewProps {
     onNavigateToUser: (fid: number) => void;
+    onBookClick: (book: any) => void;
 }
 
-const FeedView: React.FC<FeedViewProps> = ({ onNavigateToUser }) => {
+const FeedView: React.FC<FeedViewProps> = ({ onNavigateToUser, onBookClick }) => {
     const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [userMap, setUserMap] = useState<Record<number, any>>({});
@@ -84,8 +85,17 @@ const FeedView: React.FC<FeedViewProps> = ({ onNavigateToUser }) => {
                     return (
                         <div key={review.id || `${review.userFid}-${review.bookKey}`} className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 shadow-sm hover:border-neutral-700 transition-colors">
                             <div className="flex items-start gap-4">
-                                {/* Book Cover - Click to maybe view book details? For now just static image */}
-                                <div className="flex-shrink-0">
+                                {/* Book Cover - Click to view book details */}
+                                <div
+                                    className="flex-shrink-0 cursor-pointer transition-transform hover:scale-105"
+                                    onClick={() => onBookClick({
+                                        key: review.bookKey,
+                                        title: review.bookTitle,
+                                        author_name: Array.isArray(review.bookAuthors) ? review.bookAuthors : [review.bookAuthors],
+                                        coverUrl: review.coverUrl,
+                                        cover_i: review.coverId
+                                    })}
+                                >
                                     {review.coverUrl ? (
                                         <img
                                             src={review.coverUrl}
@@ -123,7 +133,16 @@ const FeedView: React.FC<FeedViewProps> = ({ onNavigateToUser }) => {
                                     </div>
 
                                     {/* Book Title */}
-                                    <h3 className="font-bold text-white text-lg leading-tight mb-1 line-clamp-1">
+                                    <h3
+                                        onClick={() => onBookClick({
+                                            key: review.bookKey,
+                                            title: review.bookTitle,
+                                            author_name: Array.isArray(review.bookAuthors) ? review.bookAuthors : [review.bookAuthors],
+                                            coverUrl: review.coverUrl,
+                                            cover_i: review.coverId
+                                        })}
+                                        className="font-bold text-white text-lg leading-tight mb-1 line-clamp-1 cursor-pointer hover:text-blue-400 transition-colors"
+                                    >
                                         {review.bookTitle}
                                     </h3>
                                     {review.bookAuthors && (
