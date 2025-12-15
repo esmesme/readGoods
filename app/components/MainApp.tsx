@@ -990,8 +990,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                     )}
                 </div>
             </div>
-            {/* Render Fixed Bottom Tabs */}
-            {!selectedBook && !isVisiting && renderTabs()}
+
 
             {/* Log History Modal */}
             <LogHistoryModal
