@@ -1465,8 +1465,12 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             }
 
             if (pointsAwarded > 0) {
-                await awardPoints(effectiveUser.fid, pointsAwarded);
-                showToast(`Entry logged! +${pointsAwarded} pts`, "success");
+                const awarded = await awardPoints(effectiveUser.fid, pointsAwarded);
+                if (awarded) {
+                    showToast(`Entry logged! +${pointsAwarded} pts`, "success");
+                } else {
+                    showToast("Entry logged! (Daily points limit reached)", "success");
+                }
             } else {
                 showToast("Your entry has been logged", "success");
             }

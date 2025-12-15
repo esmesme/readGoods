@@ -456,16 +456,32 @@ export async function updateCustomBook(key: string, updates: Partial<CustomBook>
     }
 }
 
-export async function awardPoints(userFid: number, amount: number) {
+export async function awardPoints(userFid: number, amount: number): Promise<boolean> {
     try {
         const userRef = doc(db, USERS_COLLECTION, userFid.toString());
+        const userDoc = await getDoc(userRef);
+
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const lastPointsDate = userData.lastPointsDate;
+            const today = new Date().toISOString().split('T')[0];
+
+            if (lastPointsDate === today) {
+                console.log(`User ${userFid} already earned points today. Skipping.`);
+                return false;
+            }
+        }
+
         await updateDoc(userRef, {
             currentPoints: increment(amount),
+            lastPointsDate: new Date().toISOString().split('T')[0],
             updatedAt: new Date()
         });
         console.log(`Awarded ${amount} points to user ${userFid}`);
+        return true;
     } catch (error) {
         console.error("Error awarding points:", error);
+        return false;
     }
 }
 
