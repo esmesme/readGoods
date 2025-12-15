@@ -116,7 +116,13 @@ export async function saveUserProfile(user: { fid: number; username?: string; di
 
         await setDoc(userRef, {
             ...userData,
+            ...userData,
             goodsID, // Save the chronological ID
+            // Default notificationsEnabled to false if not provided, or keep existing?
+            // Let's rely on the passed userData to have it if we want to update it.
+            // If it's undefined in userData, it will be deleted by the sanitizer above if we aren't careful.
+            // But wait, the sanitizer only deletes undefined keys from userData.
+            // So if we pass { notificationsEnabled: true }, it stays.
             updatedAt: new Date(),
         }, { merge: true });
     } catch (error) {
@@ -483,6 +489,30 @@ export async function awardPoints(userFid: number, amount: number): Promise<bool
         console.error("Error awarding points:", error);
         return false;
     }
+}
+
+export async function getUsersWithNotificationsEnabled(): Promise<any[]> {
+    try {
+        const q = query(
+            collection(db, USERS_COLLECTION),
+            where("notificationsEnabled", "==", true)
+        );
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({
+            ...doc.data(),
+            fid: parseInt(doc.id)
+        }));
+    } catch (error) {
+        console.error("Error fetching users with notifications enabled:", error);
+        return [];
+    }
+}
+
+export async function sendNotification(fid: number, message: string): Promise<boolean> {
+    // Stub for Sending Notification
+    // In a real app, this would call the Farcaster API or a notification provider using the user's token.
+    console.log(`[Simulated] Sending notification to FID ${fid}: "${message}"`);
+    return true;
 }
 
 export async function getLeaderboard(limitCount: number = 100): Promise<any[]> {

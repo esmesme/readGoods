@@ -1059,7 +1059,6 @@ import { collection, query, where, onSnapshot, doc, setDoc } from "firebase/fire
 // ... (imports remain the same)
 
 export default function MainApp({ farcasterUser }: MainAppProps) {
-    const [menuOpen, setMenuOpen] = useState(false);
     const [filter, setFilter] = useState<'all' | BookStatus>('all');
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<BookData[]>([]);
@@ -1589,16 +1588,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             {/* Top Nav */}
             <div className="bg-[#0a0a0a] border-b border-neutral-800 shadow-sm sticky top-0 z-30">
                 <div className="flex items-center p-4 gap-4 max-w-6xl mx-auto">
-                    <button
-                        onClick={() => setMenuOpen(!menuOpen)}
-                        className="text-white hover:bg-neutral-800 p-2 rounded-lg transition-colors"
-                    >
-                        <div className="space-y-1.5">
-                            <span className="block w-6 h-0.5 bg-current"></span>
-                            <span className="block w-6 h-0.5 bg-current"></span>
-                            <span className="block w-6 h-0.5 bg-current"></span>
-                        </div>
-                    </button>
+
 
                     <div className="flex-1 flex items-center justify-start gap-2">
                         <img src="/readgoods-logo.png" alt="readgoods" className="h-8 object-contain" />
@@ -1747,74 +1737,22 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             </div>
 
 
-            {/* Dropdown Menu */}
-            {/* Backdrop */}
-            <div
-                className={`fixed inset-0 bg-black z-40 transition-opacity duration-300 ${menuOpen ? 'bg-opacity-20' : 'bg-opacity-0 pointer-events-none'}`}
-                onClick={() => setMenuOpen(false)}
-            />
-            {/* Menu */}
-            <div
-                className="fixed top-0 left-0 w-48 bg-[#0a0a0a] h-screen z-50 shadow-2xl transition-transform duration-300 ease-in-out border-r border-neutral-800"
-                style={{ transform: menuOpen ? 'translateX(0)' : 'translateX(-100%)' }}
-            >
-                <div className="p-4">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="font-bold text-lg text-white">Menu</h2>
-                        <button
-                            onClick={() => setMenuOpen(false)}
-                            className="text-neutral-400 hover:text-white p-1"
-                        >
-                            ✕
-                        </button>
-                    </div>
-                    <div className="space-y-1">
-                        {['all', 'completed', 'current', 'desired'].map(f => (
-                            <button
-                                key={f}
-                                onClick={() => {
-                                    setFilter(f as any);
-                                    setMenuOpen(false);
-                                }}
-                                className={`block w-full text-left px-3 py-2 rounded-md transition-colors text-sm ${filter === f
-                                    ? 'bg-neutral-800 text-white font-semibold'
-                                    : 'text-neutral-400 hover:bg-neutral-800'
-                                    }`}
-                            >
-                                {f.charAt(0).toUpperCase() + f.slice(1)}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
             <header className="max-w-6xl mx-auto p-4 md:p-8">
-                <div className="relative mb-12 flex gap-3">
+                <div className="relative mb-12 flex justify-center"> {/* Centered the log button */}
                     {!isVisiting && (
                         <button
                             onClick={handleHomeLogClick}
-                            className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg transition-colors border border-neutral-700"
+                            className="flex items-center space-x-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-3 py-2 rounded-lg text-sm font-medium transition-colors border border-neutral-700"
                         >
                             <BookOpen size={16} />
-                            <span className="text-sm font-medium">Log Pages</span>
+                            <span className="whitespace-nowrap">Log Pages</span>
                         </button>
                     )}
 
-                    <button
-                        onClick={() => handleShareLibrary(isVisiting ? viewedUser : null)}
-                        className="flex items-center space-x-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-600/30 px-3 py-2 rounded-lg transition-all"
-                    >
-                        <Share size={16} />
-                        <span className="text-sm font-medium">
-                            {isVisiting
-                                ? `Share ${viewedUser?.displayName || viewedUser?.username || 'user'}'s library`
-                                : "Share my library"
-                            }
-                        </span>
-                    </button>
+
 
                     {showLogBookDropdown && (
-                        <div className="absolute top-full left-0 mt-2 w-64 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 py-1">
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-50 py-1">
                             {userBooks.filter(b => b.status === 'current').map(book => (
                                 <button
                                     key={book.bookKey}
@@ -1888,7 +1826,23 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                             ))}
                         </div>
 
-                        {/* Book List */}
+                        {/* Share Button (moved here) */}
+                        <div className="px-4 mb-4">
+                            <button
+                                onClick={() => handleShareLibrary(isVisiting ? viewedUser : null)}
+                                className="w-full flex items-center justify-center space-x-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-600/30 px-4 py-3 rounded-xl transition-all"
+                            >
+                                <Share size={18} />
+                                <span className="font-semibold">
+                                    {isVisiting
+                                        ? `Share ${viewedUser?.displayName || viewedUser?.username || 'user'}'s library`
+                                        : "Share my library"
+                                    }
+                                </span>
+                            </button>
+                        </div>
+
+                        {/* Filter Tabs */}
                         {filteredBooks.length > 0 ? (
                             filter === 'all' ? (
                                 // New Dashboard Layout for "All"
