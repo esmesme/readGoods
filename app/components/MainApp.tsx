@@ -271,19 +271,26 @@ const FriendsStatusOverlay = ({ friends }: { friends: { userFid: number; status:
     );
 };
 
-const ReadingLogModal = ({ isOpen, onClose, onSubmit, bookTitle, isSaving }: any) => {
+const ReadingLogModal = ({ isOpen, onClose, onSubmit, bookTitle, isSaving, lastPageRead }: any) => {
     const [page, setPage] = useState("");
     const [thoughts, setThoughts] = useState("");
     const [unit, setUnit] = useState<'pages' | 'percent' | 'chapter'>('pages');
+    const [skipped, setSkipped] = useState(false);
 
     if (!isOpen) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit({ page: parseInt(page), thoughts, unit });
+        onSubmit({
+            page: skipped ? (lastPageRead || 0) : parseInt(page),
+            thoughts: skipped ? 'Skipped' : thoughts,
+            unit,
+            skipped
+        });
         setPage("");
         setThoughts("");
         setUnit('pages');
+        setSkipped(false);
     };
 
     const getUnitLabel = () => {
@@ -325,10 +332,11 @@ const ReadingLogModal = ({ isOpen, onClose, onSubmit, bookTitle, isSaving }: any
                                 key={type}
                                 type="button"
                                 onClick={() => { setUnit(type); setPage(''); }}
+                                disabled={skipped}
                                 className={`flex-1 py-1.5 px-2 text-xs font-medium rounded-md transition-all ${unit === type
                                     ? 'bg-neutral-700 text-white shadow-sm'
                                     : 'text-neutral-400 hover:text-neutral-200'
-                                    }`}
+                                    } ${skipped ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 {type === 'pages' && 'Pages'}
                                 {type === 'percent' && '% Kindle'}
@@ -343,13 +351,14 @@ const ReadingLogModal = ({ isOpen, onClose, onSubmit, bookTitle, isSaving }: any
                         </label>
                         <input
                             type="number"
-                            required
+                            required={!skipped}
+                            disabled={skipped}
                             min="0"
                             max={unit === 'percent' ? 100 : undefined}
                             value={page}
                             onChange={(e) => setPage(e.target.value)}
-                            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                            placeholder={getUnitPlaceholder()}
+                            className={`w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none ${skipped ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            placeholder={skipped ? "Skipped" : getUnitPlaceholder()}
                         />
                         <p className="mt-1.5 text-xs text-neutral-500 flex items-center">
                             <span className="bg-neutral-800 px-1.5 py-0.5 rounded text-[10px] border border-neutral-700 mr-2 font-mono">123</span>
@@ -363,10 +372,40 @@ const ReadingLogModal = ({ isOpen, onClose, onSubmit, bookTitle, isSaving }: any
                         </label>
                         <textarea
                             value={thoughts}
+                            disabled={skipped}
                             onChange={(e) => setThoughts(e.target.value)}
-                            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
-                            placeholder="How's the book? What's the vibe?"
+                            className={`w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px] ${skipped ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            placeholder={skipped ? "Skipped" : "How's the book? What's the vibe?"}
                         />
+                    </div>
+
+                    {/* Skipped Toggle - Moved Here */}
+                    <div>
+                        <div
+                            onClick={() => {
+                                if (!lastPageRead) return; // Validation
+                                setSkipped(!skipped);
+                            }}
+                            className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer select-none ${skipped
+                                ? 'bg-blue-900/20 border-blue-500/50'
+                                : 'bg-neutral-800 border-neutral-700 hover:bg-neutral-800/80'
+                                }`}
+                        >
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${skipped
+                                ? 'border-blue-500 bg-blue-500 text-white'
+                                : 'border-neutral-500'
+                                }`}>
+                                {skipped && <div className="w-2 h-2 rounded-full bg-white" />}
+                            </div>
+                            <span className={`text-sm font-medium ${skipped ? 'text-blue-400' : 'text-neutral-300'}`}>
+                                Didn't read today
+                            </span>
+                        </div>
+                        {(!lastPageRead) && (
+                            <p className="text-red-400 text-xs mt-2 ml-1">
+                                You must log at least one page number before you can use this feature.
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex justify-end pt-2">
@@ -379,7 +418,7 @@ const ReadingLogModal = ({ isOpen, onClose, onSubmit, bookTitle, isSaving }: any
                         </button>
                         <button
                             type="submit"
-                            disabled={isSaving || !page}
+                            disabled={isSaving || (!page && !skipped)}
                             className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                         >
                             {isSaving ? (
@@ -430,10 +469,11 @@ const LogHistoryModal = ({ isOpen, onClose, logs, bookTitle }: any) => {
                                             minute: 'numeric'
                                         })}
                                     </span>
-                                    <span className="text-blue-400 font-bold text-sm">
-                                        {log.unit === 'percent' ? `${log.page}%` :
-                                            log.unit === 'chapter' ? `Ch. ${log.page}` :
-                                                `Page ${log.page}`}
+                                    <span className={`font-bold text-sm ${log.skipped ? 'text-neutral-500' : 'text-blue-400'}`}>
+                                        {log.skipped ? 'Skipped' :
+                                            log.unit === 'percent' ? `${log.page}%` :
+                                                log.unit === 'chapter' ? `Ch. ${log.page}` :
+                                                    `Page ${log.page}`}
                                     </span>
                                 </div>
                                 {log.thoughts && (
@@ -1375,7 +1415,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         setShowLogBookDropdown(false);
     };
 
-    const handleSaveLog = async (logData: { page: number; thoughts?: string; unit?: 'pages' | 'percent' | 'chapter' }) => {
+    const handleSaveLog = async (logData: { page: number; thoughts?: string; unit?: 'pages' | 'percent' | 'chapter'; skipped?: boolean }) => {
         if (!loggingBook || !effectiveUser?.fid) return;
 
         setIsSaving(true);
@@ -1996,6 +2036,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 onSubmit={handleSaveLog}
                 bookTitle={loggingBook?.bookTitle || "Book"}
                 isSaving={isSaving}
+                lastPageRead={loggingBook?.lastPageRead}
             />
 
             {/* Toast Notification */}

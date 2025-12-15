@@ -215,7 +215,7 @@ export async function deleteUserBook(userFid: number, bookKey: string) {
 
 
 
-export async function addReadingLog(userFid: number, bookKey: string, logData: { page: number; thoughts?: string }) {
+export async function addReadingLog(userFid: number, bookKey: string, logData: { page: number; thoughts?: string; unit?: 'pages' | 'percent' | 'chapter'; skipped?: boolean }) {
     try {
         const docId = bookKey.replace('/works/', '');
         const userBookId = `${userFid}_${docId}`;
@@ -227,11 +227,14 @@ export async function addReadingLog(userFid: number, bookKey: string, logData: {
         });
 
         // Update the main userBook doc with latest page/progress if needed
-        const userBookRef = doc(db, USER_BOOKS_COLLECTION, userBookId);
-        await updateDoc(userBookRef, {
-            lastPageRead: logData.page,
-            updatedAt: new Date()
-        });
+        // If skipped, we do NOT update lastPageRead
+        if (!logData.skipped) {
+            const userBookRef = doc(db, USER_BOOKS_COLLECTION, userBookId);
+            await updateDoc(userBookRef, {
+                lastPageRead: logData.page,
+                updatedAt: new Date()
+            });
+        }
 
     } catch (error) {
         console.error('Error adding reading log:', error);

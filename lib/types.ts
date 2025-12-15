@@ -10,6 +10,7 @@ export interface UserBook {
     loggedAt: Date;
     updatedAt: Date;
     logs?: any[]; // ReadingLog[] but avoiding circular dependency issues for now, or just array
+    lastPageRead?: number;
 }
 
 export interface ReadingLog {
@@ -18,4 +19,5 @@ export interface ReadingLog {
     thoughts?: string;
     date: any; // Timestamp
     unit?: 'pages' | 'percent' | 'chapter';
+    skipped?: boolean;
 }
