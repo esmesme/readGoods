@@ -16,14 +16,18 @@ import {
     saveUserProfile,
     addReadingLog,
     getReadingLogs,
-    searchUsers
+    searchUsers,
+    awardPoints,
+    getUserProfile
 } from "@/lib/firestoreUtils";
 
 import { BookStatus, UserBook, ReadingLog } from "@/lib/types";
 import { sdk } from "@farcaster/miniapp-sdk";
-import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen, Ban, MessageCircle } from 'lucide-react';
+
+import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen, Ban, MessageCircle, Trophy } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import FeedView from './FeedView'; // Import FeedView
+import ReaderboardView from './ReaderboardView'; // Import ReaderboardView
 
 interface FarcasterUser {
     fid: number;
@@ -1095,7 +1099,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     const effectiveUser = farcasterUser?.fid ? farcasterUser : { fid: 999999, username: 'dev_user' };
     const [viewedUser, setViewedUser] = useState<FarcasterUser | null>(null); // New state for viewed user
     const isVisiting = viewedUser?.fid !== effectiveUser?.fid && viewedUser?.fid !== undefined;    // Tab State
-    const [activeTab, setActiveTab] = useState<'feed' | 'library'>('feed');
+    const [activeTab, setActiveTab] = useState<'feed' | 'library' | 'readerboard'>('feed');
+    const [currentUserPoints, setCurrentUserPoints] = useState(0); // State for points
 
     const renderTabs = () => (
         <div className="flex justify-center space-x-1 mb-6 bg-neutral-900/50 p-1 rounded-xl border border-neutral-800 w-full max-w-md mx-auto relative z-10">
@@ -1121,6 +1126,18 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 <div className="flex items-center gap-2">
                     <BookCheck size={16} />
                     <span>My Library</span>
+                </div>
+            </button>
+            <button
+                onClick={() => { setActiveTab('readerboard'); setViewedUser(null); setSelectedBook(null); }}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${activeTab === 'readerboard'
+                    ? 'bg-neutral-800 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+                    }`}
+            >
+                <div className="flex items-center gap-2">
+                    <Trophy size={16} />
+                    <span>Readerboard</span>
                 </div>
             </button>
         </div>
@@ -1298,7 +1315,20 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         });
 
         return () => unsubscribe();
-    }, [effectiveUser?.fid, viewedUser]); // Re-attach when user or viewed user changes
+    }, [effectiveUser?.fid, viewedUser]);
+
+    // Points Listener
+    useEffect(() => {
+        if (!effectiveUser?.fid) return;
+        const userRef = doc(db, 'users', effectiveUser.fid.toString());
+        const unsubscribe = onSnapshot(userRef, (doc) => {
+            if (doc.exists()) {
+                setCurrentUserPoints(doc.data().currentPoints || 0);
+            }
+        });
+        return () => unsubscribe();
+    }, [effectiveUser?.fid]);
+
 
     const handleSearchResultClick = (book: BookData) => {
         handleBookClick(book);
@@ -1421,7 +1451,26 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         setIsSaving(true);
         try {
             await addReadingLog(effectiveUser.fid, loggingBook.bookKey, logData);
-            showToast("Your entry has been logged", "success");
+
+            // Award Points
+            let pointsAwarded = 0;
+            if (logData.skipped) {
+                pointsAwarded = 100;
+            } else {
+                pointsAwarded = 200; // Base for logging pages
+                // Check if thoughts has word count > 5
+                if (logData.thoughts && logData.thoughts.trim().split(/\s+/).length > 5) {
+                    pointsAwarded = 300;
+                }
+            }
+
+            if (pointsAwarded > 0) {
+                await awardPoints(effectiveUser.fid, pointsAwarded);
+                showToast(`Entry logged! +${pointsAwarded} pts`, "success");
+            } else {
+                showToast("Your entry has been logged", "success");
+            }
+
             setIsLoggingModalOpen(false);
 
             // Refresh logs if we are viewing this book
@@ -1550,6 +1599,13 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                     <div className="flex-1 flex items-center justify-start gap-2">
                         <img src="/readgoods-logo.png" alt="readgoods" className="h-8 object-contain" />
                         <img src="/book-icon.png" alt="Book Icon" className="w-16 h-16 object-contain" />
+                    </div>
+
+                    {/* Points Display - Desktop */}
+                    <div className="hidden md:flex items-center bg-neutral-900 border border-neutral-800 rounded-full px-4 py-1.5 mr-4">
+                        <Trophy size={14} className="text-yellow-500 mr-2" />
+                        <span className="text-white font-bold text-sm">{currentUserPoints.toLocaleString()}</span>
+                        <span className="text-neutral-500 text-xs ml-1 uppercase font-medium tracking-wider">pts</span>
                     </div>
 
                     {/* Desktop Search with Dropdown */}
@@ -1797,6 +1853,10 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                 }
                             });
                         }} />
+                    </div>
+                ) : activeTab === 'readerboard' ? (
+                    <div className="w-full">
+                        <ReaderboardView effectiveUser={effectiveUser} />
                     </div>
                 ) : (
                     <>

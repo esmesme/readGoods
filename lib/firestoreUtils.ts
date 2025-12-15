@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc, addDoc, updateDoc, runTransaction, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc, addDoc, updateDoc, runTransaction, orderBy, limit, increment } from 'firebase/firestore';
 import { BookData } from './openLibrary';
 import { BookStatus, UserBook, ReadingLog } from './types';
 
@@ -453,5 +453,37 @@ export async function updateCustomBook(key: string, updates: Partial<CustomBook>
     } catch (error) {
         console.error('Error updating custom book:', error);
         throw error;
+    }
+}
+
+export async function awardPoints(userFid: number, amount: number) {
+    try {
+        const userRef = doc(db, USERS_COLLECTION, userFid.toString());
+        await updateDoc(userRef, {
+            currentPoints: increment(amount),
+            updatedAt: new Date()
+        });
+        console.log(`Awarded ${amount} points to user ${userFid}`);
+    } catch (error) {
+        console.error("Error awarding points:", error);
+    }
+}
+
+export async function getLeaderboard(limitCount: number = 100): Promise<any[]> {
+    try {
+        const q = query(
+            collection(db, USERS_COLLECTION),
+            orderBy("currentPoints", "desc"),
+            limit(limitCount)
+        );
+
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({
+            ...doc.data(),
+            fid: parseInt(doc.id) // Ensure FID is available
+        }));
+    } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+        return [];
     }
 }
