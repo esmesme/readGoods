@@ -1605,8 +1605,8 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         <img src="/book-icon.png" alt="Book Icon" className="w-16 h-16 object-contain" />
                     </div>
 
-                    {/* Points Display - Desktop */}
-                    <div className="hidden md:flex items-center bg-neutral-900 border border-neutral-800 rounded-full px-4 py-1.5 mr-4">
+                    {/* Points Display */}
+                    <div className="flex items-center bg-neutral-900 border border-neutral-800 rounded-full px-3 py-1.5 mr-0 md:mr-4">
                         <Trophy size={14} className="text-yellow-500 mr-2" />
                         <span className="text-white font-bold text-sm">{currentUserPoints.toLocaleString()}</span>
                         <span className="text-neutral-500 text-xs ml-1 uppercase font-medium tracking-wider">pts</span>
