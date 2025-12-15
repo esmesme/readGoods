@@ -990,6 +990,9 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                     )}
                 </div>
             </div>
+            {/* Render Fixed Bottom Tabs */}
+            {!selectedBook && !isVisiting && renderTabs()}
+
             {/* Log History Modal */}
             <LogHistoryModal
                 isOpen={showLogHistory}
@@ -1102,42 +1105,36 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
     const [currentUserPoints, setCurrentUserPoints] = useState(0); // State for points
 
     const renderTabs = () => (
-        <div className="flex justify-center space-x-1 mb-6 bg-neutral-900/50 p-1 rounded-xl border border-neutral-800 w-full max-w-md mx-auto relative z-10">
+        <div className="fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800 p-2 z-50 flex justify-around items-center pb-safe-area-bottom">
             <button
                 onClick={() => { setActiveTab('feed'); setViewedUser(null); setSelectedBook(null); }}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${activeTab === 'feed'
-                    ? 'bg-neutral-800 text-white shadow-sm'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+                className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${activeTab === 'feed'
+                    ? 'text-white'
+                    : 'text-neutral-500 hover:text-neutral-300'
                     }`}
             >
-                <div className="flex items-center gap-2">
-                    <MessageCircle size={16} />
-                    <span>Live Feed</span>
-                </div>
+                <MessageCircle size={20} className={activeTab === 'feed' ? 'fill-current' : ''} />
+                <span className="text-[10px] font-medium">Feed</span>
             </button>
             <button
                 onClick={() => { setActiveTab('library'); setViewedUser(null); setSelectedBook(null); }}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${activeTab === 'library'
-                    ? 'bg-neutral-800 text-white shadow-sm'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+                className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${activeTab === 'library'
+                    ? 'text-white'
+                    : 'text-neutral-500 hover:text-neutral-300'
                     }`}
             >
-                <div className="flex items-center gap-2">
-                    <BookCheck size={16} />
-                    <span>My Library</span>
-                </div>
+                <BookCheck size={20} className={activeTab === 'library' ? 'fill-current' : ''} />
+                <span className="text-[10px] font-medium">Library</span>
             </button>
             <button
                 onClick={() => { setActiveTab('readerboard'); setViewedUser(null); setSelectedBook(null); }}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${activeTab === 'readerboard'
-                    ? 'bg-neutral-800 text-white shadow-sm'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+                className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${activeTab === 'readerboard'
+                    ? 'text-white'
+                    : 'text-neutral-500 hover:text-neutral-300'
                     }`}
             >
-                <div className="flex items-center gap-2">
-                    <Trophy size={16} />
-                    <span>Readerboard</span>
-                </div>
+                <Trophy size={20} className={activeTab === 'readerboard' ? 'fill-current' : ''} />
+                <span className="text-[10px] font-medium">Readerboard</span>
             </button>
         </div>
     );
@@ -1163,7 +1160,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             if (!isNaN(fid)) {
                 // Set temporary user data while fetching
                 // We always set it if the param exists, letting the UI decide if it counts as 'visiting'
-                setViewedUser({ fid, username: '', displayName: `User ${fid}`, pfpUrl: '' });
+                setViewedUser({ fid, username: '', displayName: `User ${fid} `, pfpUrl: '' });
 
                 // Fetch real profile
                 import('@/lib/firebase').then(async ({ db }) => {
@@ -1176,7 +1173,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                         setViewedUser({
                             fid,
                             username: userData.username || '',
-                            displayName: userData.displayName || `User ${fid}`,
+                            displayName: userData.displayName || `User ${fid} `,
                             pfpUrl: userData.pfpUrl || ''
                         });
                     }
@@ -1200,7 +1197,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
         const isSelf = user.fid === effectiveUser?.fid;
         const text = isSelf
             ? `Check out my library on Read Goods! 📚`
-            : `Check out ${user.displayName || user.username}'s library on Read Goods! 📚`;
+            : `Check out ${user.displayName || user.username} 's library on Read Goods! 📚`;
 
         const shareUrl = new URL("https://read-goods.vercel.app/share");
         shareUrl.searchParams.set("userFid", user.fid.toString());
@@ -1767,9 +1764,10 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 </div>
             </header>
 
-            <main className="flex-grow flex flex-col px-4 md:px-8 py-6 max-w-4xl mx-auto w-full relative z-0">
-                {/* Render Tab Navigation */}
-                {!selectedBook && !isVisiting && renderTabs()}
+
+            <main className="flex-grow flex flex-col px-4 md:px-8 py-6 max-w-4xl mx-auto w-full relative z-0 pb-24">
+                {/* Tabs are now fixed at bottom */}
+
 
                 {/* Feed View */}
                 {activeTab === 'feed' && !selectedBook && !isVisiting ? (
