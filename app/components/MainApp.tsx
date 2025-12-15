@@ -2048,6 +2048,9 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                 )
             }
 
+            {/* Render Fixed Bottom Tabs */}
+            {!selectedBook && !isVisiting && renderTabs()}
+
             <ReadingLogModal
                 isOpen={isLoggingModalOpen}
                 onClose={() => setIsLoggingModalOpen(false)}
