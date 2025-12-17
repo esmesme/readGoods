@@ -165,6 +165,8 @@ export async function getBookUsers(bookKey: string): Promise<{ userFid: number; 
         const querySnapshot = await getDocs(q);
 
         const userBooks = querySnapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id,
             userFid: doc.data().userFid,
             status: doc.data().status as BookStatus,
             review: doc.data().review as string | undefined
@@ -531,5 +533,41 @@ export async function getLeaderboard(limitCount: number = 100): Promise<any[]> {
     } catch (error) {
         console.error("Error fetching leaderboard:", error);
         return [];
+    }
+}
+
+export async function toggleLikeReview(reviewId: string, userFid: number): Promise<boolean> {
+    const reviewRef = doc(db, USER_BOOKS_COLLECTION, reviewId);
+    const likeRef = doc(db, USER_BOOKS_COLLECTION, reviewId, 'likes', userFid.toString());
+
+    try {
+        let isLiked = false;
+        await runTransaction(db, async (transaction) => {
+            const likeDoc = await transaction.get(likeRef);
+            if (likeDoc.exists()) {
+                transaction.delete(likeRef);
+                transaction.update(reviewRef, { likeCount: increment(-1) });
+                isLiked = false;
+            } else {
+                transaction.set(likeRef, { likedAt: new Date() });
+                transaction.update(reviewRef, { likeCount: increment(1) });
+                isLiked = true;
+            }
+        });
+        return isLiked;
+    } catch (error) {
+        console.error("Error toggling like:", error);
+        throw error;
+    }
+}
+
+export async function checkReviewLikeStatus(reviewId: string, userFid: number): Promise<boolean> {
+    try {
+        const likeRef = doc(db, USER_BOOKS_COLLECTION, reviewId, 'likes', userFid.toString());
+        const likeDoc = await getDoc(likeRef);
+        return likeDoc.exists();
+    } catch (error) {
+        console.error("Error checking like status:", error);
+        return false;
     }
 }

@@ -18,13 +18,15 @@ import {
     getReadingLogs,
     searchUsers,
     awardPoints,
+    toggleLikeReview,
+    checkReviewLikeStatus,
     getUserProfile
 } from "@/lib/firestoreUtils";
 
 import { BookStatus, UserBook, ReadingLog } from "@/lib/types";
 import { sdk } from "@farcaster/miniapp-sdk";
 
-import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen, Ban, MessageCircle, Trophy } from 'lucide-react';
+import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus, Share, LineChart as LineChartIcon, BookOpen, Ban, MessageCircle, Trophy, Heart } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import FeedView from './FeedView'; // Import FeedView
 import ReaderboardView from './ReaderboardView'; // Import ReaderboardView
@@ -613,6 +615,60 @@ const ReadingProgressGraph = ({ logs, bookTitle, coverUrl, isAbandoned }: { logs
     );
 };
 
+const FriendReviewItem = ({ friend, currentUserFid }: { friend: any, currentUserFid?: number }) => {
+    const [isLiked, setIsLiked] = useState(false);
+    const [likeCount, setLikeCount] = useState(friend.likeCount || 0);
+    const [isLiking, setIsLiking] = useState(false);
+
+    useEffect(() => {
+        if (currentUserFid && friend.id) {
+            checkReviewLikeStatus(friend.id, currentUserFid).then(setIsLiked);
+        }
+    }, [currentUserFid, friend.id]);
+
+    const handleLike = async () => {
+        if (!currentUserFid || isLiking) return;
+        const newIsLiked = !isLiked;
+        const newCount = likeCount + (newIsLiked ? 1 : -1);
+        setIsLiked(newIsLiked);
+        setLikeCount(newCount);
+        setIsLiking(true);
+        try {
+            await toggleLikeReview(friend.id, currentUserFid);
+        } catch (error) {
+            setIsLiked(!newIsLiked);
+            setLikeCount(likeCount);
+        } finally {
+            setIsLiking(false);
+        }
+    };
+
+    const handleShare = async () => {
+        const shareText = `Check out ${friend.displayName || friend.username}'s review of "${friend.bookTitle}" on Book Logger!`;
+        if (navigator.share) {
+            try { await navigator.share({ title: 'Book Review', text: shareText, url: window.location.href }); } catch { }
+        } else {
+            navigator.clipboard.writeText(shareText + " " + window.location.href);
+            // alert("Link copied!"); // Removing alert for smoother UX, maybe toast if possible but simplistic for now
+        }
+    };
+
+    return (
+        <div className="ml-11 mt-1 p-3 bg-neutral-900/50 rounded-lg border border-neutral-800/50">
+            <p className="text-sm text-neutral-300 italic mb-2">"{friend.review}"</p>
+            <div className="flex items-center gap-4">
+                <button onClick={handleLike} className={`flex items-center gap-1.5 text-xs transition-colors ${isLiked ? 'text-red-500' : 'text-neutral-500 hover:text-red-400'}`}>
+                    <Heart size={14} className={isLiked ? 'fill-current' : ''} />
+                    {likeCount > 0 && <span>{likeCount}</span>}
+                </button>
+                <button onClick={handleShare} className="text-neutral-500 hover:text-white transition-colors">
+                    <Share size={14} />
+                </button>
+            </div>
+        </div>
+    );
+};
+
 const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogProgress, currentUserFid, viewedUser, effectiveUser, setViewedUser, isVisiting }: any) => {
     const userStatusConfig = STATUS_CONFIG[userStatus] || STATUS_CONFIG.none;
     const friendsWithBook = friendData.filter((f: any) => f.status && f.status !== 'none').length;
@@ -979,9 +1035,7 @@ const BookCard = ({ book, userStatus, friendData, onStatusChange, onBack, onLogP
                                 </div>
 
                                 {friend.review && (
-                                    <div className="ml-11 mt-1 p-3 bg-neutral-900/50 rounded-lg border border-neutral-800/50">
-                                        <p className="text-sm text-neutral-300 italic">"{friend.review}"</p>
-                                    </div>
+                                    <FriendReviewItem friend={friend} currentUserFid={currentUserFid} />
                                 )}
                             </div>
                         ))
@@ -1794,6 +1848,7 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                 });
                             }}
                             onBookClick={handleBookClick}
+                            currentUserFid={effectiveUser?.fid}
                         />
                     </div>
                 ) : activeTab === 'readerboard' ? (
