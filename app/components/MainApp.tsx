@@ -20,7 +20,8 @@ import {
     awardPoints,
     toggleLikeReview,
     checkReviewLikeStatus,
-    getUserProfile
+    getUserProfile,
+    getLikedReviews
 } from "@/lib/firestoreUtils";
 
 import { BookStatus, UserBook, ReadingLog } from "@/lib/types";
@@ -30,6 +31,7 @@ import { BookCheck, Clock, BookmarkPlus, Users, CircleUserRound, Trash2, X, Plus
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import FeedView from './FeedView'; // Import FeedView
 import ReaderboardView from './ReaderboardView'; // Import ReaderboardView
+import ReviewCard from './ReviewCard';
 
 interface FarcasterUser {
     fid: number;
@@ -1115,7 +1117,9 @@ import { collection, query, where, onSnapshot, doc, setDoc } from "firebase/fire
 // ... (imports remain the same)
 
 export default function MainApp({ farcasterUser }: MainAppProps) {
-    const [filter, setFilter] = useState<'all' | BookStatus>('all');
+    const [filter, setFilter] = useState<'all' | BookStatus | 'liked'>('all');
+    const [likedReviews, setLikedReviews] = useState<any[]>([]);
+    const [likedReviewsUsers, setLikedReviewsUsers] = useState<Record<number, any>>({});
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<BookData[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -1259,6 +1263,36 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
 
         shareToFarcaster(text, shareUrl.toString());
     };
+
+
+    // Fetch Liked Reviews
+    useEffect(() => {
+        const fetchLiked = async () => {
+            if (filter === 'liked' && effectiveUser?.fid) {
+                setLoadingDetails(true);
+                try {
+                    const reviews = await getLikedReviews(effectiveUser.fid);
+                    setLikedReviews(reviews);
+
+                    // Fetch user profiles for these reviews
+                    const userFids = [...new Set(reviews.map(r => r.userFid))];
+                    const users: Record<number, any> = {};
+                    await Promise.all(userFids.map(async (fid) => {
+                        const u = await getUserProfile(fid);
+                        if (u) users[fid] = u;
+                    }));
+                    setLikedReviewsUsers(users);
+
+                } catch (error) {
+                    console.error("Failed to fetch liked reviews", error);
+                    showToast("Failed to load liked reviews", "error");
+                } finally {
+                    setLoadingDetails(false);
+                }
+            }
+        };
+        fetchLiked();
+    }, [filter, effectiveUser?.fid]);
 
     // Debounced search
     useEffect(() => {
@@ -1879,6 +1913,19 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                                     <span>{STATUS_CONFIG[key].label}</span>
                                 </button>
                             ))}
+                            {/* Liked Reviews Button - Only for own library */}
+                            {!isVisiting && effectiveUser?.fid && (
+                                <button
+                                    onClick={() => setFilter('liked')}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex items-center space-x-2 ${filter === 'liked'
+                                        ? 'bg-red-900/40 text-red-400 ring-1 ring-inset ring-red-500/50'
+                                        : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white'
+                                        }`}
+                                >
+                                    <Heart size={14} className={filter === 'liked' ? 'fill-current' : ''} />
+                                    <span>Liked Reviews</span>
+                                </button>
+                            )}
                         </div>
 
                         {/* Share Button (moved here) */}
@@ -1897,8 +1944,52 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
                             </button>
                         </div>
 
+
                         {/* Filter Tabs */}
-                        {filteredBooks.length > 0 ? (
+                        {filter === 'liked' ? (
+                            <div className="space-y-4">
+                                {likedReviews.length > 0 ? (
+                                    likedReviews.map((review) => (
+                                        <ReviewCard
+                                            key={review.id || `${review.userFid}-${review.bookKey}`}
+                                            review={review}
+                                            user={likedReviewsUsers[review.userFid]}
+                                            statusConfig={STATUS_CONFIG[review.status]}
+                                            onBookClick={handleBookClick}
+                                            onNavigateToUser={(fid) => {
+                                                // Handle navigation same as feed
+                                                import('@/lib/firebase').then(async ({ db }) => {
+                                                    const { doc, getDoc } = await import('firebase/firestore');
+                                                    const userDoc = await getDoc(doc(db, 'users', fid.toString()));
+                                                    if (userDoc.exists()) {
+                                                        const u = userDoc.data();
+                                                        setViewedUser({
+                                                            fid,
+                                                            username: u.username,
+                                                            displayName: u.displayName,
+                                                            pfpUrl: u.pfpUrl
+                                                        });
+                                                    } else {
+                                                        setViewedUser({ fid, username: '', displayName: `User ${fid}`, pfpUrl: '' });
+                                                    }
+                                                    // Note: We are already in 'library' tab, but viewedUser change triggers re-render 
+                                                    // of MainApp. Ideally we should maybe reset filter to 'all' or 'current' for the visited user?
+                                                    // For now, let's just update viewedUser. 
+                                                    // AND tricky part: if we are viewing 'liked' reviews (our own), and click a user,
+                                                    // we become 'visiting' that user. We probably want to see their library.
+                                                    setFilter('all');
+                                                });
+                                            }}
+                                            currentUserFid={effectiveUser?.fid}
+                                        />
+                                    ))
+                                ) : (
+                                    <div className="text-center py-20 text-neutral-500 bg-neutral-900/30 rounded-xl border border-neutral-800">
+                                        <p>You haven't liked any reviews yet.</p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : filteredBooks.length > 0 ? (
                             filter === 'all' ? (
                                 // New Dashboard Layout for "All"
                                 <div>
@@ -1958,49 +2049,52 @@ export default function MainApp({ farcasterUser }: MainAppProps) {
             </main>
 
 
-            {/* BOOK DETAILS MODAL */}
-            {selectedBook && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="w-full max-w-lg bg-[#111] rounded-2xl border border-neutral-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                        {/* Header */}
-                        <div className="p-4 border-b border-neutral-800 flex items-center justify-between bg-[#0a0a0a]">
-                            <h2 className="text-lg font-semibold text-white truncate pr-4">Book Details</h2>
-                            <button
-                                onClick={() => {
-                                    setSelectedBook(null);
-                                    setBookDetails(null);
-                                    setReadingLogs([]);
-                                    selectedBookKeyRef.current = null;
-                                }}
-                                className="p-2 text-neutral-400 hover:text-white bg-neutral-800/50 hover:bg-neutral-800 rounded-full transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
 
-                        <div className="overflow-y-auto overflow-x-hidden p-0 custom-scrollbar">
-                            <BookCard
-                                book={{ ...selectedBook, ...bookDetails, logs: readingLogs }}
-                                userStatus={selectedBook.userStatus}
-                                friendData={bookUsers}
-                                onStatusChange={handleStatusChange}
-                                onBack={() => {
-                                    setSelectedBook(null);
-                                    setBookDetails(null);
-                                    setReadingLogs([]);
-                                    selectedBookKeyRef.current = null;
-                                }}
-                                isSaving={isSaving}
-                                onLogProgress={handleLogProgress}
-                                currentUserFid={effectiveUser?.fid}
-                                isVisiting={!!viewedUser && viewedUser.fid !== effectiveUser?.fid}
-                                viewedUser={viewedUser}
-                                setViewedUser={setViewedUser}
-                            />
+            {/* BOOK DETAILS MODAL */}
+            {
+                selectedBook && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="w-full max-w-lg bg-[#111] rounded-2xl border border-neutral-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                            {/* Header */}
+                            <div className="p-4 border-b border-neutral-800 flex items-center justify-between bg-[#0a0a0a]">
+                                <h2 className="text-lg font-semibold text-white truncate pr-4">Book Details</h2>
+                                <button
+                                    onClick={() => {
+                                        setSelectedBook(null);
+                                        setBookDetails(null);
+                                        setReadingLogs([]);
+                                        selectedBookKeyRef.current = null;
+                                    }}
+                                    className="p-2 text-neutral-400 hover:text-white bg-neutral-800/50 hover:bg-neutral-800 rounded-full transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="overflow-y-auto overflow-x-hidden p-0 custom-scrollbar">
+                                <BookCard
+                                    book={{ ...selectedBook, ...bookDetails, logs: readingLogs }}
+                                    userStatus={selectedBook.userStatus}
+                                    friendData={bookUsers}
+                                    onStatusChange={handleStatusChange}
+                                    onBack={() => {
+                                        setSelectedBook(null);
+                                        setBookDetails(null);
+                                        setReadingLogs([]);
+                                        selectedBookKeyRef.current = null;
+                                    }}
+                                    isSaving={isSaving}
+                                    onLogProgress={handleLogProgress}
+                                    currentUserFid={effectiveUser?.fid}
+                                    isVisiting={!!viewedUser && viewedUser.fid !== effectiveUser?.fid}
+                                    viewedUser={viewedUser}
+                                    setViewedUser={setViewedUser}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Manual Entry Modal */}
             {

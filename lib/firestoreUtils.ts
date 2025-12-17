@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc, addDoc, updateDoc, runTransaction, orderBy, limit, increment } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, query, where, getDocs, deleteDoc, addDoc, updateDoc, runTransaction, orderBy, limit, increment, collectionGroup } from 'firebase/firestore';
 import { BookData } from './openLibrary';
 import { BookStatus, UserBook, ReadingLog } from './types';
 
@@ -549,7 +549,8 @@ export async function toggleLikeReview(reviewId: string, userFid: number): Promi
                 transaction.update(reviewRef, { likeCount: increment(-1) });
                 isLiked = false;
             } else {
-                transaction.set(likeRef, { likedAt: new Date() });
+                // Save userFid to enable Collection Group Queries
+                transaction.set(likeRef, { likedAt: new Date(), userFid: userFid });
                 transaction.update(reviewRef, { likeCount: increment(1) });
                 isLiked = true;
             }
@@ -569,5 +570,36 @@ export async function checkReviewLikeStatus(reviewId: string, userFid: number): 
     } catch (error) {
         console.error("Error checking like status:", error);
         return false;
+    }
+}
+
+export async function getLikedReviews(userFid: number): Promise<any[]> {
+    try {
+        // Use Collection Group Query to find all 'likes' documents for this user
+        const likesQuery = query(
+            collectionGroup(db, 'likes'),
+            where('userFid', '==', userFid),
+            orderBy('likedAt', 'desc')
+        );
+
+        const likesSnapshot = await getDocs(likesQuery);
+        const reviewRefs = likesSnapshot.docs.map(doc => doc.ref.parent.parent); // parent is 'likes' collection, parent.parent is review doc
+
+        const reviews: any[] = [];
+        // Fetch the actual reviews
+        // Note: For large numbers, we might want to batch this differently
+        await Promise.all(reviewRefs.map(async (ref) => {
+            if (ref) {
+                const reviewDoc = await getDoc(ref);
+                if (reviewDoc.exists()) {
+                    reviews.push({ ...reviewDoc.data(), id: reviewDoc.id });
+                }
+            }
+        }));
+
+        return reviews;
+    } catch (error) {
+        console.error("Error fetching liked reviews:", error);
+        return [];
     }
 }
