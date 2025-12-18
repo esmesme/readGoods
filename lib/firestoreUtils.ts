@@ -536,9 +536,11 @@ export async function getLeaderboard(limitCount: number = 100): Promise<any[]> {
     }
 }
 
+
 export async function toggleLikeReview(reviewId: string, userFid: number): Promise<boolean> {
     const reviewRef = doc(db, USER_BOOKS_COLLECTION, reviewId);
     const likeRef = doc(db, USER_BOOKS_COLLECTION, reviewId, 'likes', userFid.toString());
+    const userLikeRef = doc(db, USERS_COLLECTION, userFid.toString(), 'likedReviews', reviewId);
 
     try {
         let isLiked = false;
@@ -546,11 +548,14 @@ export async function toggleLikeReview(reviewId: string, userFid: number): Promi
             const likeDoc = await transaction.get(likeRef);
             if (likeDoc.exists()) {
                 transaction.delete(likeRef);
+                transaction.delete(userLikeRef); // Remove from user's liked list
                 transaction.update(reviewRef, { likeCount: increment(-1) });
                 isLiked = false;
             } else {
-                // Save userFid to enable Collection Group Queries
+                // Save userFid to enable Collection Group Queries (legacy support)
                 transaction.set(likeRef, { likedAt: new Date(), userFid: userFid });
+                // Add to user's liked list
+                transaction.set(userLikeRef, { likedAt: new Date(), reviewId: reviewId });
                 transaction.update(reviewRef, { likeCount: increment(1) });
                 isLiked = true;
             }
@@ -575,25 +580,18 @@ export async function checkReviewLikeStatus(reviewId: string, userFid: number): 
 
 export async function getLikedReviews(userFid: number): Promise<any[]> {
     try {
-        // Use Collection Group Query to find all 'likes' documents for this user
-        const likesQuery = query(
-            collectionGroup(db, 'likes'),
-            where('userFid', '==', userFid),
-            orderBy('likedAt', 'desc')
-        );
+        // Query the user's 'likedReviews' subcollection
+        const userLikesRef = collection(db, USERS_COLLECTION, userFid.toString(), 'likedReviews');
+        const q = query(userLikesRef, orderBy('likedAt', 'desc'));
+        const likesSnapshot = await getDocs(q);
 
-        const likesSnapshot = await getDocs(likesQuery);
-        const reviewRefs = likesSnapshot.docs.map(doc => doc.ref.parent.parent); // parent is 'likes' collection, parent.parent is review doc
+        const reviewIds = likesSnapshot.docs.map(doc => doc.id);
 
         const reviews: any[] = [];
-        // Fetch the actual reviews
-        // Note: For large numbers, we might want to batch this differently
-        await Promise.all(reviewRefs.map(async (ref) => {
-            if (ref) {
-                const reviewDoc = await getDoc(ref);
-                if (reviewDoc.exists()) {
-                    reviews.push({ ...reviewDoc.data(), id: reviewDoc.id });
-                }
+        await Promise.all(reviewIds.map(async (id) => {
+            const reviewDoc = await getDoc(doc(db, USER_BOOKS_COLLECTION, id));
+            if (reviewDoc.exists()) {
+                reviews.push({ ...reviewDoc.data(), id: reviewDoc.id });
             }
         }));
 
@@ -603,3 +601,4 @@ export async function getLikedReviews(userFid: number): Promise<any[]> {
         return [];
     }
 }
+
